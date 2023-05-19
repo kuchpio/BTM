@@ -1,9 +1,4 @@
-﻿using System;
-using BTM.Text;
-using BTM.Hashmap;
-using System.Collections.Generic;
-using System.Collections;
-
+﻿
 namespace BTM
 {
     class Program

@@ -313,9 +313,9 @@ namespace BTM
     class SortedArray<BTMBase> : IBTMCollection<BTMBase> where BTMBase: IBTMBase
     {
         private List<BTMBase> array;
-        CollectionUtils.IComparer<BTMBase> comparerFunction; // #1 - #2
+        IComparer<BTMBase> comparerFunction; // #1 - #2
 
-        public SortedArray(CollectionUtils.IComparer<BTMBase> comparerFunction)
+        public SortedArray(IComparer<BTMBase> comparerFunction)
         {
             array = new List<BTMBase>();
             this.comparerFunction = comparerFunction;
@@ -476,83 +476,6 @@ namespace BTM
 
     static class CollectionUtils
     {
-        public interface IPredicate<BTMBase> where BTMBase : IBTMBase
-        {
-            bool Eval(BTMBase item);
-        }
-
-        public interface IComparer<BTMBase> where BTMBase : IBTMBase
-        {
-            int Eval(BTMBase item1, BTMBase item2);
-        }
-
-        public interface IAction<BTMBase> where BTMBase : IBTMBase
-        {
-            void Eval(BTMBase item);
-        }
-
-        public class All<BTMBase> : IPredicate<BTMBase> where BTMBase : IBTMBase
-        {
-            private List<IPredicate<BTMBase>> predicates;
-
-            public All(List<IPredicate<BTMBase>> predicates)
-            {
-                this.predicates = predicates;
-            }
-            
-            public bool Eval(BTMBase item)
-            {
-                foreach (IPredicate<BTMBase> predicate in predicates)
-                    if (!predicate.Eval(item)) return false;
-
-                return true;
-            }
-        }
-
-        public class Any<BTMBase> : IPredicate<BTMBase> where BTMBase : IBTMBase
-        {
-            private List<IPredicate<BTMBase>> predicates;
-
-            public Any(List<IPredicate<BTMBase>> predicates)
-            {
-                this.predicates = predicates;
-            }
-
-            public bool Eval(BTMBase item)
-            {
-                foreach (IPredicate<BTMBase> predicate in predicates)
-                    if (predicate.Eval(item)) return true;
-
-                return false;
-            }
-        }
-
-        public class ActionsIf<BTMBase> : IAction<BTMBase> where BTMBase : IBTMBase
-        {
-            private List<IAction<BTMBase>> actions;
-            private IPredicate<BTMBase> predicate;
-
-            public ActionsIf(IAction<BTMBase> action, IPredicate<BTMBase> predicate)
-            {
-                actions = new List<IAction<BTMBase>>() { action };
-                this.predicate = predicate;
-            }
-
-            public ActionsIf(List<IAction<BTMBase>> actions, IPredicate<BTMBase> predicate)
-            {
-                this.actions = actions;
-                this.predicate = predicate;
-            }
-
-            public void Eval(BTMBase item)
-            {
-                if (!predicate.Eval(item)) return;
-
-                foreach (IAction<BTMBase> action in actions)
-                    action.Eval(item);
-            }
-        }
-
         public static BTMBase Find<BTMBase>(IIterator<BTMBase> iterator, IPredicate<BTMBase> predicate) where BTMBase : class, IBTMBase
         {
             while (iterator.MoveNext())
@@ -603,14 +526,6 @@ namespace BTM
             List<string> shortStrings = new List<string>();
             ForEach(iterator, new StringConcat<BTMBase>(shortStrings));
             return string.Join(sep, shortStrings);
-        }
-
-        public class Print<BTMBase> : IAction<BTMBase> where BTMBase : IBTMBase
-        {
-            public void Eval(BTMBase item)
-            {
-                Console.WriteLine(item);
-            }
         }
 
         private class StringConcat<BTMBase> : IAction<BTMBase> where BTMBase : IBTMBase

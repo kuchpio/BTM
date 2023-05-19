@@ -26,7 +26,7 @@ namespace BTM
             drivers = new Vector<IDriver>();
         }
 
-        private class AddToVehicleCollection<V> : CollectionUtils.IAction<V> where V : IVehicle
+        private class AddToVehicleCollection<V> : IAction<V> where V : IVehicle
         {
             private IBTMCollection<IVehicle> collection;
 
