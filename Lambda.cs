@@ -32,6 +32,21 @@ namespace BTM
         }
     }
 
+    class Negation<BTMBase> : IPredicate<BTMBase> where BTMBase : IBTMBase
+    {
+        IPredicate<BTMBase> predicate;
+        
+        public Negation(IPredicate<BTMBase> predicate)
+        {
+            this.predicate = predicate;
+        }
+        
+        public bool Eval(BTMBase item)
+        {
+            return !predicate.Eval(item);
+        }
+    }
+
     class All<BTMBase> : IPredicate<BTMBase> where BTMBase : IBTMBase
     {
         private List<IPredicate<BTMBase>> predicates;

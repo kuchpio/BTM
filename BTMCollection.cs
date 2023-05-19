@@ -11,6 +11,7 @@ namespace BTM
     {
         void Add(BTMBase btmObject);
         void Add(IIterator<BTMBase> iterator);
+        void RemoveIfFirst(IPredicate<BTMBase> predicate);
         IIterator<BTMBase> First();
         IIterator<BTMBase> Last();
         IIterator<BTMBase> GetForwardIterator(int startOffset = 0);
@@ -130,6 +131,23 @@ namespace BTM
             while (iterator.MoveNext()) Add(iterator.Current);
         }
 
+        public void RemoveIfFirst(IPredicate<BTMBase> predicate)
+        {
+            for (BiListNode currentNode = head; currentNode != null; currentNode = currentNode.Next)
+            {
+                if (predicate.Eval(currentNode.Value))
+                {
+                    if (currentNode.Prev != null)
+                        currentNode.Prev.Next = currentNode.Next;
+
+                    if (currentNode.Next != null)
+                        currentNode.Next.Prev = currentNode.Prev;
+
+                    return;
+                }
+            }
+        }
+
         private class BiListIterator : IIterator<BTMBase>
         {
             private BiListNode currentNode, startNode;
@@ -188,7 +206,10 @@ namespace BTM
         private int size;
         private int capacity;
 
-        public Vector(int capacity = 8)
+        public Vector() : this(8)
+        { }
+
+        public Vector(int capacity)
         {
             data = new BTMBase[capacity];
             size = 0;
@@ -263,6 +284,23 @@ namespace BTM
         public void Add(IIterator<BTMBase> iterator)
         {
             while (iterator.MoveNext()) Add(iterator.Current);
+        }
+
+        public void RemoveIfFirst(IPredicate<BTMBase> predicate)
+        {
+            bool found = false;
+            for (int i = 0; i < size; i++)
+            {
+                if (found)
+                {
+                    data[i - 1] = data[i];
+                }
+                else
+                {
+                    if (predicate.Eval(data[i])) found = true;
+                }    
+            }
+            if (found) size--;
         }
 
         private class VectorIterator : IIterator<BTMBase>
@@ -430,6 +468,23 @@ namespace BTM
             while (iterator.MoveNext()) Add(iterator.Current);
         }
 
+        public void RemoveIfFirst(IPredicate<BTMBase> predicate)
+        {
+            bool found = false;
+            for (int i = 0; i < array.Count; i++)
+            {
+                if (found)
+                {
+                    array[i - 1] = array[i];
+                }
+                else
+                {
+                    if (predicate.Eval(array[i])) found = true;
+                }    
+            }
+            if (found) array.RemoveAt(array.Count - 1);
+        }
+
         private class SortedArrayIterator : IIterator<BTMBase>
         {
             private int currentIndex, startIndex;
@@ -506,19 +561,6 @@ namespace BTM
             }
 
             return counter;
-        }
-
-        public static IIterator<BTMBase> Filter<BTMBase>(IIterator<BTMBase> iterator, List<IPredicate<BTMBase>> predicates) where BTMBase : IBTMBase
-        {
-            Vector<BTMBase> filteredCollection = new Vector<BTMBase>();
-
-            while (iterator.MoveNext())
-            {
-                if (predicates.All((IPredicate<BTMBase> predicate) => predicate.Eval(iterator.Current)))
-                    filteredCollection.Add(iterator.Current);
-            }
-
-            return filteredCollection.First();
         }
 
         public static string ToString<BTMBase>(IIterator<BTMBase> iterator, string sep = ", ") where BTMBase : IBTMBase

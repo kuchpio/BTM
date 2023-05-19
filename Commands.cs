@@ -38,6 +38,7 @@ namespace BTM
                 new FindCommand(), 
                 new AddCommand(),
                 new EditCommand(),
+                new DeleteCommand(), 
                 new ExitCommand(terminal) 
             })
         { }
@@ -475,7 +476,7 @@ namespace BTM
             private ActionSequence<BTMBase> actionSequence;
 
             public EditConfirmer(IBTMCollection<BTMBase> collection, All<BTMBase> filters, ActionSequence<BTMBase> actionSequence) : 
-                base(new ConsoleMessageWriter(new List<CommandBase>(), "Object succesfully registered for edit."), "done")
+                base(new ConsoleMessageWriter("Object succesfully registered for edit."), "done")
             {
                 this.collection = collection;
                 this.filters = filters;
@@ -505,7 +506,7 @@ namespace BTM
                 subcommands.Add(new RecordNumberVerifier<ILine>(
                     1, 
                     new EditDescriptor(collection, collectionFilter, new ActionSequence<ILine>()), 
-                    new ConsoleMessageWriter(new List<CommandBase>(), "Conditions do not specify 1 record."), 
+                    new ConsoleMessageWriter(new List<CommandBase>(), "Conditions do not specify one record uniquely."), 
                     collection, 
                     collectionFilter
                 ));
@@ -539,7 +540,7 @@ namespace BTM
                 subcommands.Add(new RecordNumberVerifier<IStop>(
                     1, 
                     new EditDescriptor(collection, collectionFilter, new ActionSequence<IStop>()), 
-                    new ConsoleMessageWriter(new List<CommandBase>(), "Conditions do not specify 1 record."), 
+                    new ConsoleMessageWriter(new List<CommandBase>(), "Conditions do not specify one record uniquely."), 
                     collection, 
                     collectionFilter
                 ));
@@ -572,7 +573,7 @@ namespace BTM
                 subcommands.Add(new RecordNumberVerifier<IBytebus>(
                     1, 
                     new EditDescriptor(collection, collectionFilter, new ActionSequence<IBytebus>()), 
-                    new ConsoleMessageWriter(new List<CommandBase>(), "Conditions do not specify 1 record."), 
+                    new ConsoleMessageWriter(new List<CommandBase>(), "Conditions do not specify one record uniquely."), 
                     collection, 
                     collectionFilter
                 ));
@@ -604,7 +605,7 @@ namespace BTM
                 subcommands.Add(new RecordNumberVerifier<ITram>(
                     1, 
                     new EditDescriptor(collection, collectionFilter, new ActionSequence<ITram>()), 
-                    new ConsoleMessageWriter(new List<CommandBase>(), "Conditions do not specify 1 record."), 
+                    new ConsoleMessageWriter(new List<CommandBase>(), "Conditions do not specify one record uniquely."), 
                     collection, 
                     collectionFilter
                 ));
@@ -635,7 +636,7 @@ namespace BTM
                 subcommands.Add(new RecordNumberVerifier<IVehicle>(
                     1, 
                     new EditDescriptor(collection, collectionFilter, new ActionSequence<IVehicle>()), 
-                    new ConsoleMessageWriter(new List<CommandBase>(), "Conditions do not specify 1 record."), 
+                    new ConsoleMessageWriter(new List<CommandBase>(), "Conditions do not specify one record uniquely."), 
                     collection, 
                     collectionFilter
                 ));
@@ -667,7 +668,7 @@ namespace BTM
                 subcommands.Add(new RecordNumberVerifier<IDriver>(
                     1, 
                     new EditDescriptor(collection, collectionFilter, new ActionSequence<IDriver>()), 
-                    new ConsoleMessageWriter(new List<CommandBase>(), "Conditions do not specify 1 record."), 
+                    new ConsoleMessageWriter(new List<CommandBase>(), "Conditions do not specify one record uniquely."), 
                     collection, 
                     collectionFilter
                 ));
@@ -688,6 +689,126 @@ namespace BTM
                             new ConsoleMessageWriter(subcommands, $"Previous line contains an error.")
                         }));
                 }
+            }
+        }
+    }
+
+    class DeleteCommand : KeywordConsumer
+    {
+        public DeleteCommand() : 
+            base(new List<CommandBase>() {
+                new DeleteLine(),
+                new DeleteStop(), 
+                new DeleteBytebus(), 
+                new DeleteTram(), 
+                new DeleteDriver()
+            }, "delete")
+        { }
+
+        private class Deleter<BTMBase> : CommandBase where BTMBase : IBTMBase
+        {
+            private IBTMCollection<BTMBase> collection;
+            private IPredicate<BTMBase> predicate;
+            
+            public Deleter(IBTMCollection<BTMBase> collection, IPredicate<BTMBase> predicate) : 
+                base(new List<CommandBase>() { new ConsoleMessageWriter("Object succesfully registered for deletion.") })
+            {
+                this.collection = collection;
+                this.predicate = predicate;
+            }
+
+            public override bool Check(string input)
+            {
+                return true;
+            }
+
+            public override string Process(string input)
+            {
+                collection.RemoveIfFirst(predicate);
+                return input;
+            }
+        }
+
+        private class DeleteLine : LineSelector
+        {
+            public DeleteLine()
+            {
+                subcommands.Add(new NumberDecFilterAdder(subcommands, collectionFilter));
+                subcommands.Add(new NumberHexFilterAdder(subcommands, collectionFilter));
+                subcommands.Add(new CommonNameFilterAdder(subcommands, collectionFilter));
+                subcommands.Add(new RecordNumberVerifier<ILine>(
+                    1, 
+                    new Deleter<ILine>(collection, collectionFilter), 
+                    new ConsoleMessageWriter("Conditions do not specify one record uniquely."), 
+                    collection, 
+                    collectionFilter
+                ));
+            }
+        }
+
+        private class DeleteStop : StopSelector
+        {
+            public DeleteStop()
+            {
+                subcommands.Add(new IdFilterAdder(subcommands, collectionFilter));
+                subcommands.Add(new NameFilterAdder(subcommands, collectionFilter));
+                subcommands.Add(new TypeFilterAdder(subcommands, collectionFilter));
+                subcommands.Add(new RecordNumberVerifier<IStop>(
+                    1, 
+                    new Deleter<IStop>(collection, collectionFilter), 
+                    new ConsoleMessageWriter("Conditions do not specify one record uniquely."), 
+                    collection, 
+                    collectionFilter
+                ));
+            }
+        }
+
+        private class DeleteBytebus : BytebusSelector
+        {
+            public DeleteBytebus()
+            {
+                subcommands.Add(new IdFilterAdder(subcommands, collectionFilter));
+                subcommands.Add(new EngineFilterAdder(subcommands, collectionFilter));
+                subcommands.Add(new RecordNumberVerifier<IBytebus>(
+                    1, 
+                    new Deleter<IBytebus>(collection, collectionFilter), 
+                    new ConsoleMessageWriter("Conditions do not specify one record uniquely."), 
+                    collection, 
+                    collectionFilter
+                ));
+            }
+        }
+
+        private class DeleteTram : TramSelector
+        {
+            public DeleteTram()
+            {
+                subcommands.Add(new IdFilterAdder(subcommands, collectionFilter));
+                subcommands.Add(new CarsNumberFilterAdder(subcommands, collectionFilter));
+                subcommands.Add(new RecordNumberVerifier<ITram>(
+                    1, 
+                    new Deleter<ITram>(collection, collectionFilter), 
+                    new ConsoleMessageWriter("Conditions do not specify one record uniquely."), 
+                    collection, 
+                    collectionFilter
+                ));
+            }
+        }
+
+        private class DeleteDriver : DriverSelector
+        {
+            public DeleteDriver()
+            {
+                subcommands.Add(new NameFilterAdder(subcommands, collectionFilter));
+                subcommands.Add(new SurnameFilterAdder(subcommands, collectionFilter));
+                subcommands.Add(new SeniorityFilterAdder(subcommands, collectionFilter));
+                subcommands.Add(new RecordNumberVerifier<IDriver>(
+                    1, 
+                    new Deleter<IDriver>(collection, collectionFilter), 
+                    new ConsoleMessageWriter("Conditions do not specify one record uniquely."), 
+                    collection, 
+                    collectionFilter
+                ));
             }
         }
     }
