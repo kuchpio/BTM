@@ -4,12 +4,14 @@ namespace BTM
     class Terminal
     {
         private bool work;
-        private CommandExecutor commandExecutor;
+        private CommandRunner commandExecutor;
+        private List<ICommandExecutor> queue;
 
         public Terminal()
         {
             work = true;
-            commandExecutor = new CommandExecutor(this);
+            commandExecutor = new CommandRunner(this);
+            queue = new List<ICommandExecutor>();
         }
 
         public void Run()
@@ -20,7 +22,7 @@ namespace BTM
                 string userInput = Console.ReadLine();
 
                 if (commandExecutor.Check(userInput))
-                    commandExecutor.Execute(userInput).Execute();
+                    queue.Add(commandExecutor.Execute(userInput));
             }
         }
 
@@ -28,17 +30,70 @@ namespace BTM
         {
             work = false;
         }
+
+        public void ClearCommandQueue()
+        {
+            queue.Clear();
+        }
+
+        public void ExecuteCommandQueue()
+        {
+            foreach (ICommandExecutor executor in queue)
+                executor.Execute();
+
+            ClearCommandQueue();
+        }
     }
 
-    class CommandExecutor : CommandBase
+    class QueueCommand : KeywordConsumer
     {
-        public CommandExecutor(Terminal terminal) : 
+        public QueueCommand(Terminal terminal) : base(new List<CommandBase>() {
+            new QueueDismiss(terminal), 
+            new QueueCommit(terminal)
+        }, "queue")
+        { }
+
+        private class QueueDismiss : KeywordConsumer
+        {
+            private Terminal terminal;
+            
+            public QueueDismiss(Terminal terminal) : base("dismiss")
+            { 
+                this.terminal = terminal;
+            }
+
+            public override void Action()
+            {
+                terminal.ClearCommandQueue();
+            }
+        }
+
+        private class QueueCommit : KeywordConsumer
+        {
+            private Terminal terminal;
+            
+            public QueueCommit(Terminal terminal) : base("commit")
+            { 
+                this.terminal = terminal;
+            }
+
+            public override void Action()
+            {
+                terminal.ExecuteCommandQueue();
+            }
+        }
+    }
+
+    class CommandRunner : CommandBase
+    {
+        public CommandRunner(Terminal terminal) : 
             base(new List<CommandBase>() { 
                 new ListCommand(), 
                 new FindCommand(), 
                 new AddCommand(),
                 new EditCommand(),
                 new DeleteCommand(), 
+                new QueueCommand(terminal),
                 new ExitCommand(terminal) 
             })
         { }
