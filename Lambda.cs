@@ -70,7 +70,12 @@ namespace BTM
         {
             predicates.Clear();
         }
-        
+
+        public All<BTMBase> Clone()
+        {
+            return new All<BTMBase>(new List<IPredicate<BTMBase>>(predicates));
+        }
+
         public bool Eval(BTMBase item)
         {
             foreach (IPredicate<BTMBase> predicate in predicates)
@@ -104,6 +109,11 @@ namespace BTM
             predicates.Clear();
         }
 
+        public Any<BTMBase> Clone()
+        {
+            return new Any<BTMBase>(new List<IPredicate<BTMBase>>(predicates));
+        }
+
         public bool Eval(BTMBase item)
         {
             foreach (IPredicate<BTMBase> predicate in predicates)
@@ -135,6 +145,11 @@ namespace BTM
         public void Clear()
         {
             actions.Clear();
+        }
+
+        public ActionSequence<BTMBase> Clone()
+        {
+            return new ActionSequence<BTMBase>(new List<IAction<BTMBase>>(actions));
         }
 
         public void Eval(BTMBase item)

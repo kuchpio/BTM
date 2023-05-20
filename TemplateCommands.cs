@@ -4,9 +4,7 @@ namespace BTM {
 
     interface ICommand
     {
-        bool Check(string input);
-        string Process(string input);
-        void Execute(string input);
+        ICommandExecutor Execute(string input);
     }
 
     abstract class CommandBase : ICommand
@@ -25,11 +23,11 @@ namespace BTM {
 
         public abstract string Process(string input);
 
-        public virtual void Execute(string input)
+        public virtual ICommandExecutor Execute(string input)
         {
             input = Process(input);
 
-            if (subcommands.Count == 0) return;
+            if (subcommands.Count == 0) return new EmptyExecutor();
 
             input = input.Trim();
 
@@ -37,12 +35,12 @@ namespace BTM {
             {
                 if (command.Check(input))
                 {
-                    command.Execute(input);
-                    return;
+                    return command.Execute(input);
                 }
             }
-
+            
             Console.WriteLine($"Unknown command syntax near: \n`{input}`");
+            return new EmptyExecutor();
         }
     }
 
@@ -935,32 +933,6 @@ namespace BTM {
         public override void Write(string message)
         {
             Console.WriteLine(message);
-        }
-    }
-
-    class DisplayFilteredCollection<BTMBase> : CommandBase where BTMBase : IBTMBase
-    {
-        private IBTMCollection<BTMBase> collection;
-        private IAction<BTMBase> printIfFilters;
-        private All<BTMBase> filter;
-
-        public DisplayFilteredCollection(IBTMCollection<BTMBase> collection, All<BTMBase> filter = null) 
-        {
-            this.collection = collection;
-            this.filter = filter ?? new All<BTMBase>(new List<IPredicate<BTMBase>>() { new True<BTMBase>() });
-            printIfFilters = new ActionIf<BTMBase>(new Print<BTMBase>(), this.filter);
-        }
-        
-        public override bool Check(string input)
-        {
-            return input == "";
-        }
-
-        public override string Process(string input)
-        {
-            ForEach(collection.First(), printIfFilters);
-
-            return input;
         }
     }
 

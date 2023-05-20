@@ -20,7 +20,7 @@ namespace BTM
                 string userInput = Console.ReadLine();
 
                 if (commandExecutor.Check(userInput))
-                    commandExecutor.Execute(userInput);
+                    commandExecutor.Execute(userInput).Execute();
             }
         }
 
@@ -86,7 +86,7 @@ namespace BTM
         {
             public DisplayLine()
             {
-                subcommands.Add(new DisplayFilteredCollection<ILine>(collection));
+                subcommands.Add(new FindExecutorReturner<ILine>(collection));
             }
         }
 
@@ -94,7 +94,7 @@ namespace BTM
         {
             public DisplayStop()
             {
-                subcommands.Add(new DisplayFilteredCollection<IStop>(collection));
+                subcommands.Add(new FindExecutorReturner<IStop>(collection));
             }
         }
 
@@ -102,7 +102,7 @@ namespace BTM
         {
             public DisplayBytebus()
             {
-                subcommands.Add(new DisplayFilteredCollection<IBytebus>(collection));
+                subcommands.Add(new FindExecutorReturner<IBytebus>(collection));
             }
         }
 
@@ -110,7 +110,7 @@ namespace BTM
         {
             public DisplayTram()
             {
-                subcommands.Add(new DisplayFilteredCollection<ITram>(collection));
+                subcommands.Add(new FindExecutorReturner<ITram>(collection));
             }
         }
 
@@ -118,7 +118,7 @@ namespace BTM
         {
             public DisplayVehicle()
             {
-                subcommands.Add(new DisplayFilteredCollection<IVehicle>(collection));
+                subcommands.Add(new FindExecutorReturner<IVehicle>(collection));
             }
         }
 
@@ -126,7 +126,7 @@ namespace BTM
         {
             public DisplayDriver()
             {
-                subcommands.Add(new DisplayFilteredCollection<IDriver>(collection));
+                subcommands.Add(new FindExecutorReturner<IDriver>(collection));
             }
         }
     }
@@ -151,7 +151,7 @@ namespace BTM
                 subcommands.Add(new NumberDecFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new NumberHexFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new CommonNameFilterAdder(subcommands, collectionFilter));
-                subcommands.Add(new DisplayFilteredCollection<ILine>(collection, collectionFilter));
+                subcommands.Add(new FindExecutorReturner<ILine>(collection, collectionFilter));
             }
         }
 
@@ -162,7 +162,7 @@ namespace BTM
                 subcommands.Add(new IdFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new NameFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new TypeFilterAdder(subcommands, collectionFilter));
-                subcommands.Add(new DisplayFilteredCollection<IStop>(collection, collectionFilter));
+                subcommands.Add(new FindExecutorReturner<IStop>(collection, collectionFilter));
             }
         }
 
@@ -172,7 +172,7 @@ namespace BTM
             {
                 subcommands.Add(new IdFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new EngineFilterAdder(subcommands, collectionFilter));
-                subcommands.Add(new DisplayFilteredCollection<IBytebus>(collection, collectionFilter));
+                subcommands.Add(new FindExecutorReturner<IBytebus>(collection, collectionFilter));
             }
         }
 
@@ -182,7 +182,7 @@ namespace BTM
             {
                 subcommands.Add(new IdFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new CarsNumberFilterAdder(subcommands, collectionFilter));
-                subcommands.Add(new DisplayFilteredCollection<ITram>(collection, collectionFilter));
+                subcommands.Add(new FindExecutorReturner<ITram>(collection, collectionFilter));
             }
         }
 
@@ -191,7 +191,7 @@ namespace BTM
             public DisplayFilteredVehicle()
             {
                 subcommands.Add(new IdFilterAdder(subcommands, collectionFilter));
-                subcommands.Add(new DisplayFilteredCollection<IVehicle>(collection, collectionFilter));
+                subcommands.Add(new FindExecutorReturner<IVehicle>(collection, collectionFilter));
             }
         }
 
@@ -202,7 +202,7 @@ namespace BTM
                 subcommands.Add(new NameFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new SurnameFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new SeniorityFilterAdder(subcommands, collectionFilter));
-                subcommands.Add(new DisplayFilteredCollection<IDriver>(collection, collectionFilter));
+                subcommands.Add(new FindExecutorReturner<IDriver>(collection, collectionFilter));
             }
         }
     }
@@ -239,20 +239,12 @@ namespace BTM
 
         private class BuildConfirmer<BTMBase> : KeywordConsumer where BTMBase : IBTMBase
         {
-            private IBTMCollection<BTMBase> collection;
-            private IBTMBuilder<BTMBase> builder;
-            
             public BuildConfirmer(IBTMCollection<BTMBase> collection, IBTMBuilder<BTMBase> builder) : 
-                base(new ConsoleMessageWriter(new List<CommandBase>(), "Object succesfully added."), "done")
-            {
-                this.collection = collection;
-                this.builder = builder;
-            }
-
-            public override void Action()
-            {
-                collection.Add(builder.Result());
-            }
+                base(new ConsoleMessageWriter(new List<CommandBase>() 
+                        { new AddExecutorReturner<BTMBase>(collection, builder) }, 
+                        "Object registered for addition."
+                    ), "done")
+            { }
         }
 
         private class BuildDiscarder : KeywordConsumer
@@ -471,22 +463,11 @@ namespace BTM
 
         private class EditConfirmer<BTMBase> : KeywordConsumer where BTMBase : class, IBTMBase
         {
-            private IBTMCollection<BTMBase> collection;
-            private All<BTMBase> filters;
-            private ActionSequence<BTMBase> actionSequence;
-
             public EditConfirmer(IBTMCollection<BTMBase> collection, All<BTMBase> filters, ActionSequence<BTMBase> actionSequence) : 
-                base(new ConsoleMessageWriter("Object succesfully registered for edit."), "done")
-            {
-                this.collection = collection;
-                this.filters = filters;
-                this.actionSequence = actionSequence;
-            }
-
-            public override void Action()
-            {
-                actionSequence.Eval(CollectionUtils.Find(collection.First(), filters));
-            }
+                base(new ConsoleMessageWriter(new List<CommandBase>() {
+                    new EditExecutorReturner<BTMBase>(collection, actionSequence, filters)
+                }, "Object succesfully registered for edit."), "done")
+            { }
         }
 
         private class EditDiscarder : KeywordConsumer
@@ -705,28 +686,12 @@ namespace BTM
             }, "delete")
         { }
 
-        private class Deleter<BTMBase> : CommandBase where BTMBase : IBTMBase
+        private class Deleter<BTMBase> : ConsoleMessageWriter where BTMBase : IBTMBase
         {
-            private IBTMCollection<BTMBase> collection;
-            private IPredicate<BTMBase> predicate;
-            
-            public Deleter(IBTMCollection<BTMBase> collection, IPredicate<BTMBase> predicate) : 
-                base(new List<CommandBase>() { new ConsoleMessageWriter("Object succesfully registered for deletion.") })
-            {
-                this.collection = collection;
-                this.predicate = predicate;
-            }
-
-            public override bool Check(string input)
-            {
-                return true;
-            }
-
-            public override string Process(string input)
-            {
-                collection.RemoveIfFirst(predicate);
-                return input;
-            }
+            public Deleter(IBTMCollection<BTMBase> collection, All<BTMBase> filter) : base(new List<CommandBase>() {
+                new DeleteExecutorReturner<BTMBase>(collection, filter)
+            }, "Object succesfully registered for deletion.")
+            { }
         }
 
         private class DeleteLine : LineSelector
