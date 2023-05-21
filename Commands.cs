@@ -55,6 +55,15 @@ namespace BTM
         {
             return string.Join("\n", queue);       
         }
+
+        public string CommandQueueToXML()
+        {
+            return "<queue>\n\t<command>\n" + string.Join(
+                "\n\t</command>\n\t<command>\n", 
+                queue.Select((ICommandExecutor executor, int index) => 
+                    "\t\t<line content='" + string.Join("'/>\n\t\t<line content='", executor.ToString().Split('\n', StringSplitOptions.RemoveEmptyEntries)) + "'/>"
+                )) + "\n\t</command>\n</queue>";
+        }
     }
 
     class QueueCommand : KeywordConsumer
@@ -62,7 +71,8 @@ namespace BTM
         public QueueCommand(Terminal terminal) : base(new List<CommandBase>() {
             new QueueDismiss(terminal), 
             new QueueCommit(terminal), 
-            new QueuePrint(terminal)
+            new QueuePrint(terminal), 
+            new QueueExport(terminal)
         }, "queue")
         { }
 
@@ -108,6 +118,63 @@ namespace BTM
             public override void Action()
             {
                 Console.WriteLine(terminal.CommandQueueToString());
+            }
+        }
+
+        private class QueueExport : KeywordConsumer
+        {
+            public QueueExport(Terminal terminal) : base(new List<CommandBase>() {
+                new TextExporter(terminal), 
+                new XMLExporter(terminal),
+            }, "export")
+            { }
+
+            private class TextExporter : CommandBase
+            {
+                private Terminal terminal;
+
+                public TextExporter(Terminal terminal)
+                {
+                    this.terminal = terminal;
+                }
+
+                public override bool Check(string input)
+                {
+                    int spaceIndex = input.IndexOf(' ');
+                    return spaceIndex > 0 && input.Substring(spaceIndex).Trim().StartsWith("plaintext");
+                }
+
+                public override string Process(string input)
+                {
+                    string filename = input.Substring(0, input.IndexOf(' '));
+                    File.WriteAllText(filename, terminal.CommandQueueToString());
+                    return "";
+                }
+            }
+
+            private class XMLExporter : CommandBase
+            {
+                private Terminal terminal;
+
+                public XMLExporter(Terminal terminal)
+                {
+                    this.terminal = terminal;
+                }
+
+                public override bool Check(string input)
+                {
+                    int spaceIndex = input.IndexOf(' ');
+                    if (input.Length > 0 && spaceIndex < 0) return true;
+                    return spaceIndex > 0 && input.Substring(spaceIndex).Trim().StartsWith("xml");
+                }
+
+                public override string Process(string input)
+                {
+                    int spaceIndex = input.IndexOf(' ');
+                    string filename = spaceIndex < 0 ? input : input.Substring(0, spaceIndex);
+                    File.WriteAllText(filename, terminal.CommandQueueToXML());
+                    return "";
+                }
             }
         }
     }

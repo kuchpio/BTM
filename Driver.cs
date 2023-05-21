@@ -282,7 +282,8 @@ namespace BTM
 
         public void AddSeniority(int seniority)
         {
-            throw new NotImplementedException();
+            builder.AddSeniority(seniority);
+            logs.Add($"seniority=\"{seniority}\"");
         }
 
         public void AddSurname(string surname)

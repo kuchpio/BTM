@@ -132,7 +132,7 @@ namespace BTM
 
         public override string ToString()
         {
-            return $"edit {collection} {filter}\n{actionSequence}";
+            return $"edit {collection} {filter}\n{actionSequence}\ndone";
         }
     }
 
