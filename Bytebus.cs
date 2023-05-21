@@ -203,6 +203,11 @@ namespace BTM
         {
             this.id = id;
         }
+
+        public override string ToString()
+        {
+            return "base";
+        }
     }
 
     class BytebusTextBuilder : BytebusBaseBuilder
@@ -212,6 +217,52 @@ namespace BTM
             IBytebus result = new BytebusTextAdapter(id, engine);
             Reset();
             return result;
+        }
+
+        public override string ToString()
+        {
+            return "secondary";
+        }
+    }
+
+    class BytebusBuilderLogger : IBytebusBuilder
+    {
+        private IBytebusBuilder builder;
+        private List<string> logs;
+
+        public BytebusBuilderLogger(IBytebusBuilder builder)
+        {
+            this.builder = builder;
+            logs = new List<string>();
+        }
+
+        public void AddEngine(string engine)
+        {
+            builder.AddEngine(engine);
+            logs.Add($"engine=\"{engine}\"");
+        }
+
+        public void AddId(int id)
+        {
+            builder.AddId(id);
+            logs.Add($"id=\"{id}\"");
+        }
+
+        public void Reset()
+        {
+            builder.Reset();
+            logs.Clear();
+        }
+
+        public IBytebus Result()
+        {
+            logs.Clear();
+            return builder.Result();
+        }
+
+        public override string ToString()
+        {
+            return $"add bytebus {builder.ToString()}\n{string.Join("\n", logs)}\ndone";
         }
     }
 }

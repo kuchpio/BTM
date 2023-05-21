@@ -241,6 +241,11 @@ namespace BTM
             Reset();
             return result;
         }
+
+        public override string ToString()
+        {
+            return "base";
+        }
     }
 
     class DriverTextBuilder : DriverBaseBuilder
@@ -250,6 +255,57 @@ namespace BTM
             IDriver result = new DriverTextAdapter(name, surname, seniority);
             Reset();
             return result;
+        }
+
+        public override string ToString()
+        {
+            return "secondary";
+        }
+    }
+
+    class DriverBuilderLogger : IDriverBuilder
+    {
+        private IDriverBuilder builder;
+        private List<string> logs;
+
+        public DriverBuilderLogger(IDriverBuilder builder)
+        {
+            this.builder = builder;
+            logs = new List<string>();
+        }
+
+        public void AddName(string name)
+        {
+            builder.AddName(name);
+            logs.Add($"name=\"{name}\"");
+        }
+
+        public void AddSeniority(int seniority)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void AddSurname(string surname)
+        {
+            builder.AddName(surname);
+            logs.Add($"surname=\"{surname}\"");
+        }
+
+        public void Reset()
+        {
+            builder.Reset();
+            logs.Clear();
+        }
+
+        public IDriver Result()
+        {
+            logs.Clear();
+            return builder.Result();
+        }
+
+        public override string ToString()
+        {
+            return $"add driver {builder.ToString()}\n{string.Join("\n", logs)}\ndone";
         }
     }
 }

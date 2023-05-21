@@ -238,6 +238,11 @@ namespace BTM
             Reset();
             return result;
         }
+
+        public override string ToString()
+        {
+            return "base";
+        }
     }
 
     class StopTextBuilder : StopBaseBuilder
@@ -247,6 +252,58 @@ namespace BTM
             IStop result = new StopTextAdapter(id, name, type);
             Reset();
             return result;
+        }
+
+        public override string ToString()
+        {
+            return "secondary";
+        }
+    }
+
+    class StopBuilderLogger : IStopBuilder
+    {
+        private IStopBuilder builder;
+        private List<string> logs;
+
+        public StopBuilderLogger(IStopBuilder builder)
+        {
+            this.builder = builder;
+            logs = new List<string>();
+        }
+
+        public void AddId(int id)
+        {
+            builder.AddId(id);
+            logs.Add($"id=\"{id}\"");
+        }
+
+        public void AddName(string name)
+        {
+            builder.AddName(name);
+            logs.Add($"name=\"{name}\"");
+        }
+
+        public void AddStopType(string type)
+        {
+            builder.AddStopType(type);
+            logs.Add($"type=\"{type}\"");
+        }
+
+        public void Reset()
+        {
+            builder.Reset();
+            logs.Clear();
+        }
+
+        public IStop Result()
+        {
+            logs.Clear();
+            return builder.Result();
+        }
+
+        public override string ToString()
+        {
+            return $"add stop {builder.ToString()}\n{string.Join("\n", logs)}\ndone";
         }
     }
 }

@@ -5,12 +5,6 @@ namespace BTM
         void Execute();
     }
 
-    class EmptyExecutor : ICommandExecutor
-    {
-        public void Execute()
-        { }
-    }
-
     abstract class ExecutorReturner : CommandBase
     {
         public override bool Check(string input) => input == "";
@@ -20,10 +14,10 @@ namespace BTM
 
     class FindExecutorReturner<BTMBase> : ExecutorReturner where BTMBase : IBTMBase
     {
-        private IBTMCollection<BTMBase> collection;
+        private NamedCollection<BTMBase> collection;
         private All<BTMBase> filter;
 
-        public FindExecutorReturner(IBTMCollection<BTMBase> collection, All<BTMBase> filter = null)
+        public FindExecutorReturner(NamedCollection<BTMBase> collection, All<BTMBase> filter = null)
         {
             this.collection = collection;
             this.filter = filter;
@@ -37,19 +31,23 @@ namespace BTM
 
     class FindExecutor<BTMBase> : ICommandExecutor where BTMBase : IBTMBase
     {
-        private IBTMCollection<BTMBase> collection;
-        private IAction<BTMBase> printIfFilters;
+        private NamedCollection<BTMBase> collection;
+        private All<BTMBase> filter;
 
-        public FindExecutor(IBTMCollection<BTMBase> collection, All<BTMBase> filter = null)
+        public FindExecutor(NamedCollection<BTMBase> collection, All<BTMBase> filter = null)
         {
             this.collection = collection;
-            filter = filter ?? new All<BTMBase>(new List<IPredicate<BTMBase>>() { new True<BTMBase>() });
-            printIfFilters = new ActionIf<BTMBase>(new Print<BTMBase>(), filter);
+            this.filter = filter ?? new All<BTMBase>(new List<IPredicate<BTMBase>>());
         }
         
         public void Execute()
         {
-            CollectionUtils.ForEach(collection.First(), printIfFilters);
+            CollectionUtils.ForEach(collection.Collection.First(), new ActionIf<BTMBase>(new Print<BTMBase>(), filter));
+        }
+
+        public override string ToString()
+        {
+            return filter.Count == 0 ? $"list {collection}" : $"find {collection} {filter}";
         }
     }
 
@@ -66,7 +64,8 @@ namespace BTM
 
         public override ICommandExecutor Execute(string input)
         {
-            return new AddExecutor<BTMBase>(collection, builder.Result());
+            string buildLogs = builder.ToString();
+            return new AddExecutor<BTMBase>(collection, builder.Result(), buildLogs);
         }
     }
 
@@ -74,30 +73,37 @@ namespace BTM
     {
         private IBTMCollection<BTMBase> collection;
         private BTMBase newObject;
+        private string buildLogs;
 
-        public AddExecutor(IBTMCollection<BTMBase> collection, BTMBase newObject)
+        public AddExecutor(IBTMCollection<BTMBase> collection, BTMBase newObject, string buildLogs)
         {
             this.collection = collection;
             this.newObject = newObject;
+            this.buildLogs = buildLogs;
         }
         
         public void Execute()
         {
             collection.Add(newObject);
         }
+
+        public override string ToString()
+        {
+            return buildLogs;
+        }
     }
 
     class EditExecutorReturner<BTMBase> : ExecutorReturner where BTMBase : class, IBTMBase
     {
-        private IBTMCollection<BTMBase> collection;
-        private ActionSequence<BTMBase> actionSequence;
+        private NamedCollection<BTMBase> collection;
         private All<BTMBase> filter;
+        private ActionSequence<BTMBase> actionSequence;
 
-        public EditExecutorReturner(IBTMCollection<BTMBase> collection, ActionSequence<BTMBase> actionSequence, All<BTMBase> filter)
+        public EditExecutorReturner(NamedCollection<BTMBase> collection, All<BTMBase> filter, ActionSequence<BTMBase> actionSequence)
         {
             this.collection = collection;
-            this.actionSequence = actionSequence;
             this.filter = filter;
+            this.actionSequence = actionSequence;
         }
 
         public override ICommandExecutor Execute(string input)
@@ -108,11 +114,11 @@ namespace BTM
 
     class EditExecutor<BTMBase> : ICommandExecutor where BTMBase : class, IBTMBase
     {
-        private IBTMCollection<BTMBase> collection;
+        private NamedCollection<BTMBase> collection;
         private ActionSequence<BTMBase> actionSequence;
         private All<BTMBase> filter;
 
-        public EditExecutor(IBTMCollection<BTMBase> collection, ActionSequence<BTMBase> actionSequence, All<BTMBase> filter)
+        public EditExecutor(NamedCollection<BTMBase> collection, ActionSequence<BTMBase> actionSequence, All<BTMBase> filter)
         {
             this.collection = collection;
             this.actionSequence = actionSequence;
@@ -121,16 +127,21 @@ namespace BTM
         
         public void Execute()
         {
-            actionSequence.Eval(CollectionUtils.Find(collection.First(), filter));
+            actionSequence.Eval(CollectionUtils.Find(collection.Collection.First(), filter));
+        }
+
+        public override string ToString()
+        {
+            return $"edit {collection} {filter}\n{actionSequence}";
         }
     }
 
     class DeleteExecutorReturner<BTMBase> : ExecutorReturner where BTMBase : IBTMBase
     {
-        private IBTMCollection<BTMBase> collection;
+        private NamedCollection<BTMBase> collection;
         private All<BTMBase> filter;
 
-        public DeleteExecutorReturner(IBTMCollection<BTMBase> collection, All<BTMBase> filter)
+        public DeleteExecutorReturner(NamedCollection<BTMBase> collection, All<BTMBase> filter)
         {
             this.collection = collection;
             this.filter = filter;
@@ -144,10 +155,10 @@ namespace BTM
 
     class DeleteExecutor<BTMBase> : ICommandExecutor where BTMBase : IBTMBase
     {
-        private IBTMCollection<BTMBase> collection;
+        private NamedCollection<BTMBase> collection;
         private All<BTMBase> filter;
 
-        public DeleteExecutor(IBTMCollection<BTMBase> collection, All<BTMBase> filter)
+        public DeleteExecutor(NamedCollection<BTMBase> collection, All<BTMBase> filter)
         {
             this.collection = collection;
             this.filter = filter;
@@ -155,7 +166,12 @@ namespace BTM
         
         public void Execute()
         {
-            collection.RemoveIfFirst(filter);
+            collection.Collection.RemoveIfFirst(filter);
+        }
+
+        public override string ToString()
+        {
+            return $"delete {collection} {filter}";
         }
     }
 }

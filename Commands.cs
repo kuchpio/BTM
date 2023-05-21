@@ -22,7 +22,14 @@ namespace BTM
                 string userInput = Console.ReadLine();
 
                 if (commandExecutor.Check(userInput))
-                    queue.Add(commandExecutor.Execute(userInput));
+                {
+                    ICommandExecutor executor = commandExecutor.Execute(userInput);
+                    if (executor != null)
+                    {
+                        queue.Add(executor);
+                    }
+                }
+                    
             }
         }
 
@@ -43,13 +50,19 @@ namespace BTM
 
             ClearCommandQueue();
         }
+
+        public string CommandQueueToString()
+        {
+            return string.Join("\n", queue);       
+        }
     }
 
     class QueueCommand : KeywordConsumer
     {
         public QueueCommand(Terminal terminal) : base(new List<CommandBase>() {
             new QueueDismiss(terminal), 
-            new QueueCommit(terminal)
+            new QueueCommit(terminal), 
+            new QueuePrint(terminal)
         }, "queue")
         { }
 
@@ -80,6 +93,21 @@ namespace BTM
             public override void Action()
             {
                 terminal.ExecuteCommandQueue();
+            }
+        }
+
+        private class QueuePrint : KeywordConsumer
+        {
+            private Terminal terminal;
+            
+            public QueuePrint(Terminal terminal) : base("print")
+            { 
+                this.terminal = terminal;
+            }
+
+            public override void Action()
+            {
+                Console.WriteLine(terminal.CommandQueueToString());
             }
         }
     }
@@ -141,7 +169,7 @@ namespace BTM
         {
             public DisplayLine()
             {
-                subcommands.Add(new FindExecutorReturner<ILine>(collection));
+                subcommands.Add(new FindExecutorReturner<ILine>(new NamedCollection<ILine>(collection, collectionName)));
             }
         }
 
@@ -149,7 +177,7 @@ namespace BTM
         {
             public DisplayStop()
             {
-                subcommands.Add(new FindExecutorReturner<IStop>(collection));
+                subcommands.Add(new FindExecutorReturner<IStop>(new NamedCollection<IStop>(collection, collectionName)));
             }
         }
 
@@ -157,7 +185,7 @@ namespace BTM
         {
             public DisplayBytebus()
             {
-                subcommands.Add(new FindExecutorReturner<IBytebus>(collection));
+                subcommands.Add(new FindExecutorReturner<IBytebus>(new NamedCollection<IBytebus>(collection, collectionName)));
             }
         }
 
@@ -165,7 +193,7 @@ namespace BTM
         {
             public DisplayTram()
             {
-                subcommands.Add(new FindExecutorReturner<ITram>(collection));
+                subcommands.Add(new FindExecutorReturner<ITram>(new NamedCollection<ITram>(collection, collectionName)));
             }
         }
 
@@ -173,7 +201,7 @@ namespace BTM
         {
             public DisplayVehicle()
             {
-                subcommands.Add(new FindExecutorReturner<IVehicle>(collection));
+                subcommands.Add(new FindExecutorReturner<IVehicle>(new NamedCollection<IVehicle>(collection, collectionName)));
             }
         }
 
@@ -181,7 +209,7 @@ namespace BTM
         {
             public DisplayDriver()
             {
-                subcommands.Add(new FindExecutorReturner<IDriver>(collection));
+                subcommands.Add(new FindExecutorReturner<IDriver>(new NamedCollection<IDriver>(collection, collectionName)));
             }
         }
     }
@@ -206,7 +234,7 @@ namespace BTM
                 subcommands.Add(new NumberDecFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new NumberHexFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new CommonNameFilterAdder(subcommands, collectionFilter));
-                subcommands.Add(new FindExecutorReturner<ILine>(collection, collectionFilter));
+                subcommands.Add(new FindExecutorReturner<ILine>(new NamedCollection<ILine>(collection, collectionName), collectionFilter));
             }
         }
 
@@ -217,7 +245,7 @@ namespace BTM
                 subcommands.Add(new IdFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new NameFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new TypeFilterAdder(subcommands, collectionFilter));
-                subcommands.Add(new FindExecutorReturner<IStop>(collection, collectionFilter));
+                subcommands.Add(new FindExecutorReturner<IStop>(new NamedCollection<IStop>(collection, collectionName), collectionFilter));
             }
         }
 
@@ -227,7 +255,7 @@ namespace BTM
             {
                 subcommands.Add(new IdFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new EngineFilterAdder(subcommands, collectionFilter));
-                subcommands.Add(new FindExecutorReturner<IBytebus>(collection, collectionFilter));
+                subcommands.Add(new FindExecutorReturner<IBytebus>(new NamedCollection<IBytebus>(collection, collectionName), collectionFilter));
             }
         }
 
@@ -237,7 +265,7 @@ namespace BTM
             {
                 subcommands.Add(new IdFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new CarsNumberFilterAdder(subcommands, collectionFilter));
-                subcommands.Add(new FindExecutorReturner<ITram>(collection, collectionFilter));
+                subcommands.Add(new FindExecutorReturner<ITram>(new NamedCollection<ITram>(collection, collectionName), collectionFilter));
             }
         }
 
@@ -246,7 +274,7 @@ namespace BTM
             public DisplayFilteredVehicle()
             {
                 subcommands.Add(new IdFilterAdder(subcommands, collectionFilter));
-                subcommands.Add(new FindExecutorReturner<IVehicle>(collection, collectionFilter));
+                subcommands.Add(new FindExecutorReturner<IVehicle>(new NamedCollection<IVehicle>(collection, collectionName), collectionFilter));
             }
         }
 
@@ -257,7 +285,7 @@ namespace BTM
                 subcommands.Add(new NameFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new SurnameFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new SeniorityFilterAdder(subcommands, collectionFilter));
-                subcommands.Add(new FindExecutorReturner<IDriver>(collection, collectionFilter));
+                subcommands.Add(new FindExecutorReturner<IDriver>(new NamedCollection<IDriver>(collection, collectionName), collectionFilter));
             }
         }
     }
@@ -316,7 +344,7 @@ namespace BTM
                 subcommands.Add(
                     new KeywordConsumer(
                         new ConsoleMessageWriter(
-                            new BuilderDescriptor(collection, new LineBaseBuilder()), 
+                            new BuilderDescriptor(collection, new LineBuilderLogger(new LineBaseBuilder())), 
                             "`numberDec`: numeric, `numberHex`: string, `commonName`: string"
                         ), "base"
                     ));
@@ -324,7 +352,7 @@ namespace BTM
                 subcommands.Add(
                     new KeywordConsumer(
                         new ConsoleMessageWriter(
-                            new BuilderDescriptor(collection, new LineTextBuilder()), 
+                            new BuilderDescriptor(collection, new LineBuilderLogger(new LineTextBuilder())), 
                             "`numberDec`: numeric, `numberHex`: string, `commonName`: string"
                         ), "secondary"
                     ));
@@ -355,7 +383,7 @@ namespace BTM
                 subcommands.Add(
                     new KeywordConsumer(
                         new ConsoleMessageWriter(
-                            new BuilderDescriptor(collection, new StopBaseBuilder()), 
+                            new BuilderDescriptor(collection, new StopBuilderLogger(new StopBaseBuilder())), 
                             "`id`: numeric, `name`: string, `type`: string"
                         ), "base"
                     ));
@@ -363,7 +391,7 @@ namespace BTM
                 subcommands.Add(
                     new KeywordConsumer(
                         new ConsoleMessageWriter(
-                            new BuilderDescriptor(collection, new StopTextBuilder()), 
+                            new BuilderDescriptor(collection, new StopBuilderLogger(new StopTextBuilder())), 
                             "`id`: numeric, `name`: string, `type`: string"
                         ), "secondary"
                     ));
@@ -394,7 +422,7 @@ namespace BTM
                 subcommands.Add(
                     new KeywordConsumer(
                         new ConsoleMessageWriter(
-                            new BuilderDescriptor(collection, new BytebusBaseBuilder()), 
+                            new BuilderDescriptor(collection, new BytebusBuilderLogger(new BytebusBaseBuilder())), 
                             "`id`: numeric, `engine`: string"
                         ), "base"
                     ));
@@ -402,7 +430,7 @@ namespace BTM
                 subcommands.Add(
                     new KeywordConsumer(
                         new ConsoleMessageWriter(
-                            new BuilderDescriptor(collection, new BytebusTextBuilder()), 
+                            new BuilderDescriptor(collection, new BytebusBuilderLogger(new BytebusTextBuilder())), 
                             "`id`: numeric, `engine`: string"
                         ), "secondary"
                     ));
@@ -432,7 +460,7 @@ namespace BTM
                 subcommands.Add(
                     new KeywordConsumer(
                         new ConsoleMessageWriter(
-                            new BuilderDescriptor(collection, new TramBaseBuilder()), 
+                            new BuilderDescriptor(collection, new TramBuilderLogger(new TramBaseBuilder())), 
                             "`id`: numeric, `carsNumber`: numeric"
                         ), "base"
                     ));
@@ -440,7 +468,7 @@ namespace BTM
                 subcommands.Add(
                     new KeywordConsumer(
                         new ConsoleMessageWriter(
-                            new BuilderDescriptor(collection, new TramTextBuilder()), 
+                            new BuilderDescriptor(collection, new TramBuilderLogger(new TramTextBuilder())), 
                             "`id`: numeric, `carsNumber`: numeric"
                         ), "secondary"
                     ));
@@ -470,7 +498,7 @@ namespace BTM
                 subcommands.Add(
                     new KeywordConsumer(
                         new ConsoleMessageWriter(
-                            new BuilderDescriptor(collection, new DriverBaseBuilder()), 
+                            new BuilderDescriptor(collection, new DriverBuilderLogger(new DriverBaseBuilder())), 
                             "`name`: string, `surname`: string, `seniority`: numeric"
                         ), "base"
                     ));
@@ -478,7 +506,7 @@ namespace BTM
                 subcommands.Add(
                     new KeywordConsumer(
                         new ConsoleMessageWriter(
-                            new BuilderDescriptor(collection, new DriverTextBuilder()), 
+                            new BuilderDescriptor(collection, new DriverBuilderLogger(new DriverTextBuilder())), 
                             "`name`: string, `surname`: string, `seniority`: numeric"
                         ), "secondary"
                     ));
@@ -518,9 +546,9 @@ namespace BTM
 
         private class EditConfirmer<BTMBase> : KeywordConsumer where BTMBase : class, IBTMBase
         {
-            public EditConfirmer(IBTMCollection<BTMBase> collection, All<BTMBase> filters, ActionSequence<BTMBase> actionSequence) : 
+            public EditConfirmer(NamedCollection<BTMBase> collection, All<BTMBase> filters, ActionSequence<BTMBase> actionSequence) : 
                 base(new ConsoleMessageWriter(new List<CommandBase>() {
-                    new EditExecutorReturner<BTMBase>(collection, actionSequence, filters)
+                    new EditExecutorReturner<BTMBase>(collection, filters, actionSequence)
                 }, "Object succesfully registered for edit."), "done")
             { }
         }
@@ -541,7 +569,7 @@ namespace BTM
                 subcommands.Add(new CommonNameFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new RecordNumberVerifier<ILine>(
                     1, 
-                    new EditDescriptor(collection, collectionFilter, new ActionSequence<ILine>()), 
+                    new EditDescriptor(new NamedCollection<ILine>(collection, collectionName), collectionFilter, new ActionSequence<ILine>()), 
                     new ConsoleMessageWriter(new List<CommandBase>(), "Conditions do not specify one record uniquely."), 
                     collection, 
                     collectionFilter
@@ -550,7 +578,7 @@ namespace BTM
 
             private class EditDescriptor : ConsoleMessageWriter
             {
-                public EditDescriptor(IBTMCollection<ILine> collection, All<ILine> filter, ActionSequence<ILine> setActions) : 
+                public EditDescriptor(NamedCollection<ILine> collection, All<ILine> filter, ActionSequence<ILine> setActions) : 
                     base(new List<CommandBase>(), "`numberDec`: numeric, `numberHex`: string, `commonName`: string")
                 {   
                     subcommands.Add(
@@ -575,7 +603,7 @@ namespace BTM
                 subcommands.Add(new TypeFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new RecordNumberVerifier<IStop>(
                     1, 
-                    new EditDescriptor(collection, collectionFilter, new ActionSequence<IStop>()), 
+                    new EditDescriptor(new NamedCollection<IStop>(collection, collectionName), collectionFilter, new ActionSequence<IStop>()), 
                     new ConsoleMessageWriter(new List<CommandBase>(), "Conditions do not specify one record uniquely."), 
                     collection, 
                     collectionFilter
@@ -584,7 +612,7 @@ namespace BTM
 
             private class EditDescriptor : ConsoleMessageWriter
             {
-                public EditDescriptor(IBTMCollection<IStop> collection, All<IStop> filter, ActionSequence<IStop> setActions) : 
+                public EditDescriptor(NamedCollection<IStop> collection, All<IStop> filter, ActionSequence<IStop> setActions) : 
                     base(new List<CommandBase>(), "`id`: numeric, `name`: string, `type`: string")
                 {   
                     subcommands.Add(
@@ -608,7 +636,7 @@ namespace BTM
                 subcommands.Add(new EngineFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new RecordNumberVerifier<IBytebus>(
                     1, 
-                    new EditDescriptor(collection, collectionFilter, new ActionSequence<IBytebus>()), 
+                    new EditDescriptor(new NamedCollection<IBytebus>(collection, collectionName), collectionFilter, new ActionSequence<IBytebus>()), 
                     new ConsoleMessageWriter(new List<CommandBase>(), "Conditions do not specify one record uniquely."), 
                     collection, 
                     collectionFilter
@@ -617,7 +645,7 @@ namespace BTM
 
             private class EditDescriptor : ConsoleMessageWriter
             {
-                public EditDescriptor(IBTMCollection<IBytebus> collection, All<IBytebus> filter, ActionSequence<IBytebus> setActions) : 
+                public EditDescriptor(NamedCollection<IBytebus> collection, All<IBytebus> filter, ActionSequence<IBytebus> setActions) : 
                     base(new List<CommandBase>(), "`id`: numeric, `engine`: string")
                 {   
                     subcommands.Add(
@@ -640,7 +668,7 @@ namespace BTM
                 subcommands.Add(new CarsNumberFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new RecordNumberVerifier<ITram>(
                     1, 
-                    new EditDescriptor(collection, collectionFilter, new ActionSequence<ITram>()), 
+                    new EditDescriptor(new NamedCollection<ITram>(collection, collectionName), collectionFilter, new ActionSequence<ITram>()), 
                     new ConsoleMessageWriter(new List<CommandBase>(), "Conditions do not specify one record uniquely."), 
                     collection, 
                     collectionFilter
@@ -649,7 +677,7 @@ namespace BTM
 
             private class EditDescriptor : ConsoleMessageWriter
             {
-                public EditDescriptor(IBTMCollection<ITram> collection, All<ITram> filter, ActionSequence<ITram> setActions) : 
+                public EditDescriptor(NamedCollection<ITram> collection, All<ITram> filter, ActionSequence<ITram> setActions) : 
                     base(new List<CommandBase>(), "`id`: numeric, `carsNumber`: numeric")
                 {   
                     subcommands.Add(
@@ -671,7 +699,7 @@ namespace BTM
                 subcommands.Add(new IdFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new RecordNumberVerifier<IVehicle>(
                     1, 
-                    new EditDescriptor(collection, collectionFilter, new ActionSequence<IVehicle>()), 
+                    new EditDescriptor(new NamedCollection<IVehicle>(collection, collectionName), collectionFilter, new ActionSequence<IVehicle>()), 
                     new ConsoleMessageWriter(new List<CommandBase>(), "Conditions do not specify one record uniquely."), 
                     collection, 
                     collectionFilter
@@ -680,7 +708,7 @@ namespace BTM
 
             private class EditDescriptor : ConsoleMessageWriter
             {
-                public EditDescriptor(IBTMCollection<IVehicle> collection, All<IVehicle> filter, ActionSequence<IVehicle> setActions) : 
+                public EditDescriptor(NamedCollection<IVehicle> collection, All<IVehicle> filter, ActionSequence<IVehicle> setActions) : 
                     base(new List<CommandBase>(), "`id`: numeric")
                 {   
                     subcommands.Add(
@@ -703,7 +731,7 @@ namespace BTM
                 subcommands.Add(new SeniorityFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new RecordNumberVerifier<IDriver>(
                     1, 
-                    new EditDescriptor(collection, collectionFilter, new ActionSequence<IDriver>()), 
+                    new EditDescriptor(new NamedCollection<IDriver>(collection, collectionName), collectionFilter, new ActionSequence<IDriver>()), 
                     new ConsoleMessageWriter(new List<CommandBase>(), "Conditions do not specify one record uniquely."), 
                     collection, 
                     collectionFilter
@@ -712,7 +740,7 @@ namespace BTM
 
             private class EditDescriptor : ConsoleMessageWriter
             {
-                public EditDescriptor(IBTMCollection<IDriver> collection, All<IDriver> filter, ActionSequence<IDriver> setActions) : 
+                public EditDescriptor(NamedCollection<IDriver> collection, All<IDriver> filter, ActionSequence<IDriver> setActions) : 
                     base(new List<CommandBase>(), "`name`: string, `surname`: string, `seniority`: numeric")
                 {   
                     subcommands.Add(
@@ -743,7 +771,7 @@ namespace BTM
 
         private class Deleter<BTMBase> : ConsoleMessageWriter where BTMBase : IBTMBase
         {
-            public Deleter(IBTMCollection<BTMBase> collection, All<BTMBase> filter) : base(new List<CommandBase>() {
+            public Deleter(NamedCollection<BTMBase> collection, All<BTMBase> filter) : base(new List<CommandBase>() {
                 new DeleteExecutorReturner<BTMBase>(collection, filter)
             }, "Object succesfully registered for deletion.")
             { }
@@ -758,7 +786,7 @@ namespace BTM
                 subcommands.Add(new CommonNameFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new RecordNumberVerifier<ILine>(
                     1, 
-                    new Deleter<ILine>(collection, collectionFilter), 
+                    new Deleter<ILine>(new NamedCollection<ILine>(collection, collectionName), collectionFilter), 
                     new ConsoleMessageWriter("Conditions do not specify one record uniquely."), 
                     collection, 
                     collectionFilter
@@ -775,7 +803,7 @@ namespace BTM
                 subcommands.Add(new TypeFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new RecordNumberVerifier<IStop>(
                     1, 
-                    new Deleter<IStop>(collection, collectionFilter), 
+                    new Deleter<IStop>(new NamedCollection<IStop>(collection, collectionName), collectionFilter), 
                     new ConsoleMessageWriter("Conditions do not specify one record uniquely."), 
                     collection, 
                     collectionFilter
@@ -791,7 +819,7 @@ namespace BTM
                 subcommands.Add(new EngineFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new RecordNumberVerifier<IBytebus>(
                     1, 
-                    new Deleter<IBytebus>(collection, collectionFilter), 
+                    new Deleter<IBytebus>(new NamedCollection<IBytebus>(collection, collectionName), collectionFilter), 
                     new ConsoleMessageWriter("Conditions do not specify one record uniquely."), 
                     collection, 
                     collectionFilter
@@ -807,7 +835,7 @@ namespace BTM
                 subcommands.Add(new CarsNumberFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new RecordNumberVerifier<ITram>(
                     1, 
-                    new Deleter<ITram>(collection, collectionFilter), 
+                    new Deleter<ITram>(new NamedCollection<ITram>(collection, collectionName), collectionFilter), 
                     new ConsoleMessageWriter("Conditions do not specify one record uniquely."), 
                     collection, 
                     collectionFilter
@@ -824,7 +852,7 @@ namespace BTM
                 subcommands.Add(new SeniorityFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new RecordNumberVerifier<IDriver>(
                     1, 
-                    new Deleter<IDriver>(collection, collectionFilter), 
+                    new Deleter<IDriver>(new NamedCollection<IDriver>(collection, collectionName), collectionFilter), 
                     new ConsoleMessageWriter("Conditions do not specify one record uniquely."), 
                     collection, 
                     collectionFilter

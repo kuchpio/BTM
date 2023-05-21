@@ -190,6 +190,11 @@ namespace BTM
             Reset();
             return result;
         }
+
+        public override string ToString()
+        {
+            return "base";
+        }
     }
 
     class TramTextBuilder : TramBaseBuilder
@@ -199,6 +204,52 @@ namespace BTM
             ITram result = new TramTextAdapter(id, cars);
             Reset();
             return result;
+        }
+
+        public override string ToString()
+        {
+            return "secondary";
+        }
+    }
+
+    class TramBuilderLogger : ITramBuilder
+    {
+        private ITramBuilder builder;
+        private List<string> logs;
+
+        public TramBuilderLogger(ITramBuilder builder)
+        {
+            this.builder = builder;
+            logs = new List<string>();
+        }
+
+        public void AddId(int id)
+        {
+            builder.AddId(id);
+            logs.Add($"id=\"{id}\"");
+        }
+
+        public void AddCarsNumber(int cars)
+        {
+            builder.AddCarsNumber(cars);
+            logs.Add($"carsnumber=\"{cars}\"");
+        }
+
+        public void Reset()
+        {
+            builder.Reset();
+            logs.Clear();
+        }
+
+        public ITram Result()
+        {
+            logs.Clear();
+            return builder.Result();
+        }
+
+        public override string ToString()
+        {
+            return $"add tram {builder.ToString()}\n{string.Join("\n", logs)}\ndone";
         }
     }
 }

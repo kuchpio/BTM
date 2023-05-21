@@ -83,6 +83,13 @@ namespace BTM
 
             return true;
         }
+
+        public int Count => predicates.Count;
+
+        public override string ToString()
+        {
+            return string.Join(" ", predicates);
+        }
     }
 
     class Any<BTMBase> : IPredicate<BTMBase> where BTMBase : IBTMBase
@@ -121,6 +128,13 @@ namespace BTM
 
             return false;
         }
+
+        public int Count => predicates.Count;
+
+        public override string ToString()
+        {
+            return string.Join(" ", predicates);
+        }
     }
 
     class ActionSequence<BTMBase> : IAction<BTMBase> where BTMBase : IBTMBase
@@ -156,6 +170,13 @@ namespace BTM
         {
             foreach(IAction<BTMBase> action in actions)
                 action.Eval(item);
+        }
+
+        public int Count => actions.Count;
+
+        public override string ToString()
+        {
+            return string.Join("\n", actions);
         }
     }
 

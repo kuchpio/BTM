@@ -27,7 +27,7 @@ namespace BTM {
         {
             input = Process(input);
 
-            if (subcommands.Count == 0) return new EmptyExecutor();
+            if (subcommands.Count == 0) return null;
 
             input = input.Trim();
 
@@ -40,7 +40,7 @@ namespace BTM {
             }
             
             Console.WriteLine($"Unknown command syntax near: \n`{input}`");
-            return new EmptyExecutor();
+            return null;
         }
     }
 
@@ -132,14 +132,14 @@ namespace BTM {
 
         public override string Process(string input)
         {
-            (string _, char relation, string valueString, string remainingInput) = ExtractInputComponents(input);
+            (string fieldName, char relation, string valueString, string remainingInput) = ExtractInputComponents(input);
 
-            React(relation, valueString);
+            React(fieldName, relation, valueString);
 
             return remainingInput;
         }
 
-        protected abstract void React(char relation, string valueString);
+        protected abstract void React(string fieldName, char relation, string valueString);
     }
 
     interface FieldValueGetter<BTMBase, ValueType> where BTMBase : IBTMBase 
@@ -169,9 +169,9 @@ namespace BTM {
             this.filter = filter;
         }
 
-        protected override void React(char relation, string valueString)
+        protected override void React(string fieldName, char relation, string valueString)
         {
-            filter.Add(new ComparableValuePredicate<BTMBase, int>(relation, int.Parse(valueString), this));
+            filter.Add(new ComparableValuePredicate<BTMBase, int>(fieldName, relation, int.Parse(valueString), this));
         }
 
         public abstract int GetValue(BTMBase item);
@@ -187,9 +187,9 @@ namespace BTM {
             this.filter = filter;
         }
 
-        protected override void React(char relation, string valueString)
+        protected override void React(string fieldName, char relation, string valueString)
         {
-            filter.Add(new ComparableValuePredicate<BTMBase, string>(relation, valueString, this));
+            filter.Add(new ComparableValuePredicate<BTMBase, string>(fieldName, relation, valueString, this));
         }
 
         public abstract string GetValue(BTMBase item);
@@ -199,13 +199,15 @@ namespace BTM {
             where BTMBase : IBTMBase
             where ValueType : IComparable
     {
-        private char op;
+        private string fieldName;
+        private char relation;
         private ValueType value;
         private FieldValueGetter<BTMBase, ValueType> getter;
 
-        public ComparableValuePredicate(char op, ValueType value, FieldValueGetter<BTMBase, ValueType> getter)
+        public ComparableValuePredicate(string fieldName, char relation, ValueType value, FieldValueGetter<BTMBase, ValueType> getter)
         {
-            this.op = op;
+            this.fieldName = fieldName;
+            this.relation = relation;
             this.value = value;
             this.getter = getter;
         }
@@ -213,13 +215,18 @@ namespace BTM {
         public bool Eval(BTMBase item)
         {
             int diff = getter.GetValue(item).CompareTo(value);
-            switch (op)
+            switch (relation)
             {
                 case '=': return diff == 0;
                 case '<': return diff < 0;
                 case '>': return diff > 0;
             }
             return false;
+        }
+
+        public override string ToString()
+        {
+            return $"{fieldName}{relation}\"{value}\"";
         }
     }
 
@@ -235,7 +242,7 @@ namespace BTM {
             this.builder = builder;
         }
 
-        protected override void React(char _, string valueString)
+        protected override void React(string fieldName, char relation, string valueString)
         {
             BuildValue(builder, int.Parse(valueString));
         }
@@ -255,7 +262,7 @@ namespace BTM {
             this.builder = builder;
         }
 
-        protected override void React(char _, string valueString)
+        protected override void React(string fieldName, char relation, string valueString)
         {
             BuildValue(builder, valueString);
         }
@@ -273,9 +280,9 @@ namespace BTM {
             this.setActions = setActions;
         }
 
-        protected override void React(char _, string valueString)
+        protected override void React(string fieldName, char relation, string valueString)
         {
-            setActions.Add(new SetAction<BTMBase, int>(int.Parse(valueString), this));
+            setActions.Add(new SetAction<BTMBase, int>(fieldName, int.Parse(valueString), this));
         }
 
         public abstract void SetValue(BTMBase item, int value);
@@ -291,9 +298,9 @@ namespace BTM {
             this.setActions = setActions;
         }
 
-        protected override void React(char _, string valueString)
+        protected override void React(string fieldName, char relation, string valueString)
         {
-            setActions.Add(new SetAction<BTMBase, string>(valueString, this));
+            setActions.Add(new SetAction<BTMBase, string>(fieldName, valueString, this));
         }
 
         public abstract void SetValue(BTMBase item, string value);
@@ -301,11 +308,13 @@ namespace BTM {
 
     class SetAction<BTMBase, ValueType> : IAction<BTMBase> where BTMBase : IBTMBase
     {
+        private string fieldName;
         private ValueType value;
         private FieldValueSetter<BTMBase, ValueType> setter;
 
-        public SetAction(ValueType value, FieldValueSetter<BTMBase, ValueType> setter)
+        public SetAction(string fieldName, ValueType value, FieldValueSetter<BTMBase, ValueType> setter)
         {
+            this.fieldName = fieldName;
             this.value = value;
             this.setter = setter;
         }
@@ -314,10 +323,16 @@ namespace BTM {
         {
             setter.SetValue(item, value);
         }
+
+        public override string ToString()
+        {
+            return $"{fieldName}=\"{value}\"";
+        }
     }
 
     class CollectionSelector<BTMBase> : KeywordConsumer where BTMBase : IBTMBase
     {
+        protected string collectionName;
         protected IBTMCollection<BTMBase> collection;
         protected All<BTMBase> collectionFilter;
 
@@ -330,6 +345,7 @@ namespace BTM {
         {
             this.collection = collection;
             collectionFilter = new All<BTMBase>();
+            this.collectionName = collectionName;
         }
 
         public override void Action()
@@ -966,6 +982,26 @@ namespace BTM {
             subcommands = CountIf(collection.First(), filter) == number ? happySubcommands : sadSubcommands;
             
             return input;
+        }
+    }
+
+    class NamedCollection<BTMBase> where BTMBase : IBTMBase
+    {
+        private string name;
+        private IBTMCollection<BTMBase> collection;
+
+        public NamedCollection(IBTMCollection<BTMBase> collection, string name)
+        {
+            this.collection = collection;
+            this.name = name;
+        }
+
+        public string Name => name;
+        public IBTMCollection<BTMBase> Collection => collection;
+
+        public override string ToString()
+        {
+            return Name;
         }
     }
 }
