@@ -1,35 +1,32 @@
+using System.Xml;
 
 namespace BTM 
 {
     class Terminal
     {
         private bool work;
-        private CommandRunner commandExecutor;
+        private CommandBase commandRunner;
         private List<ICommandExecutor> queue;
 
         public Terminal()
         {
             work = true;
-            commandExecutor = new CommandRunner(this);
+            commandRunner = new CommandRunner(this);
             queue = new List<ICommandExecutor>();
         }
 
         public void Run()
         {
+            ICommandExecutor executor;
             while (work)
             {
                 Console.Write("BTM> ");
-                string userInput = Console.ReadLine();
+                string input = Console.ReadLine();
 
-                if (commandExecutor.Check(userInput))
-                {
-                    ICommandExecutor executor = commandExecutor.Execute(userInput);
-                    if (executor != null)
-                    {
-                        queue.Add(executor);
-                    }
-                }
-                    
+                if (input == null) return;
+
+                if ((executor = commandRunner.Execute(input)) != null)
+                    queue.Add(executor);
             }
         }
 
@@ -58,7 +55,7 @@ namespace BTM
 
         public string CommandQueueToXML()
         {
-            return "<queue>\n\t<command>\n" + string.Join(
+            return "<?xml version='1.0' encoding='utf-8'?>\n<queue>\n\t<command>\n" + string.Join(
                 "\n\t</command>\n\t<command>\n", 
                 queue.Select((ICommandExecutor executor, int index) => 
                     "\t\t<line content='" + string.Join("'/>\n\t\t<line content='", executor.ToString().Split('\n', StringSplitOptions.RemoveEmptyEntries)) + "'/>"
@@ -72,7 +69,8 @@ namespace BTM
             new QueueDismiss(terminal), 
             new QueueCommit(terminal), 
             new QueuePrint(terminal), 
-            new QueueExport(terminal)
+            new QueueExport(terminal), 
+            new QueueLoad(terminal)
         }, "queue")
         { }
 
@@ -173,6 +171,70 @@ namespace BTM
                     int spaceIndex = input.IndexOf(' ');
                     string filename = spaceIndex < 0 ? input : input.Substring(0, spaceIndex);
                     File.WriteAllText(filename, terminal.CommandQueueToXML());
+                    return "";
+                }
+            }
+        }
+
+        private class QueueLoad : KeywordConsumer
+        {
+            public QueueLoad(Terminal terminal) : base(new FileLoader(terminal), "load")
+            { }
+
+            private class FileLoader : CommandBase
+            {
+                private Terminal terminal;
+                
+                public FileLoader(Terminal terminal)
+                { 
+                    this.terminal = terminal;
+                }
+
+                public override bool Check(string input)
+                {
+                    return input != "";
+                }
+
+                public override string Process(string input)
+                {
+                    string text;
+                    try 
+                    {
+                        text = File.ReadAllText(input);
+                    }
+                    catch
+                    {
+                        Console.Error.Write($"Could not read file {input}.");
+                        return "";
+                    }
+
+                    if (text.Trim().StartsWith("<?xml"))
+                    {
+                        List<string> lines = new List<string>();
+                        XmlDocument doc = new XmlDocument();
+                        doc.LoadXml(text);
+                        foreach (XmlNode node in doc.SelectNodes("//line"))
+                        {
+                            lines.Add(node.Attributes.GetNamedItem("content").InnerText);
+                        }
+                        text = string.Join("\n", lines);
+                    }
+
+                    TextReader stdin = Console.In;
+                    TextWriter stdout = Console.Out;
+
+                    using (TextReader filestream = new StringReader(text))
+                    using (TextWriter writer = new StringWriter())
+                    {
+                        Console.SetIn(filestream);
+                        Console.SetOut(writer);
+
+                        terminal.Run();
+                    }
+
+                    Console.SetIn(stdin);
+                    Console.SetOut(stdout);
+                    
                     return "";
                 }
             }
@@ -390,8 +452,8 @@ namespace BTM
         private class BuildConfirmer<BTMBase> : KeywordConsumer where BTMBase : IBTMBase
         {
             public BuildConfirmer(IBTMCollection<BTMBase> collection, IBTMBuilder<BTMBase> builder) : 
-                base(new ConsoleMessageWriter(new List<CommandBase>() 
-                        { new AddExecutorReturner<BTMBase>(collection, builder) }, 
+                base(new ConsoleLineWriter(
+                        new AddExecutorReturner<BTMBase>(collection, builder), 
                         "Object registered for addition."
                     ), "done")
             { }
@@ -400,7 +462,7 @@ namespace BTM
         private class BuildDiscarder : KeywordConsumer
         {
             public BuildDiscarder() :
-                base(new ConsoleMessageWriter(new List<CommandBase>(), "Object creation abandoned."), "exit")
+                base(new ConsoleLineWriter("Object creation abandoned."), "exit")
             { }
         }
 
@@ -410,7 +472,7 @@ namespace BTM
             {
                 subcommands.Add(
                     new KeywordConsumer(
-                        new ConsoleMessageWriter(
+                        new ConsoleLineWriter(
                             new BuilderDescriptor(collection, new LineBuilderLogger(new LineBaseBuilder())), 
                             "`numberDec`: numeric, `numberHex`: string, `commonName`: string"
                         ), "base"
@@ -418,7 +480,7 @@ namespace BTM
 
                 subcommands.Add(
                     new KeywordConsumer(
-                        new ConsoleMessageWriter(
+                        new ConsoleLineWriter(
                             new BuilderDescriptor(collection, new LineBuilderLogger(new LineTextBuilder())), 
                             "`numberDec`: numeric, `numberHex`: string, `commonName`: string"
                         ), "secondary"
@@ -436,7 +498,7 @@ namespace BTM
                             new NumberDecBuilderAdder(subcommands, builder), 
                             new NumberHexBuilderAdder(subcommands, builder), 
                             new CommonNameBuilderAdder(subcommands, builder),
-                            new ConsoleMessageWriter(subcommands, $"Previous line contains an error.")
+                            new ConsoleLineWriter(subcommands, $"Previous line contains an error.")
                         })
                     );
                 }
@@ -449,7 +511,7 @@ namespace BTM
             {
                 subcommands.Add(
                     new KeywordConsumer(
-                        new ConsoleMessageWriter(
+                        new ConsoleLineWriter(
                             new BuilderDescriptor(collection, new StopBuilderLogger(new StopBaseBuilder())), 
                             "`id`: numeric, `name`: string, `type`: string"
                         ), "base"
@@ -457,7 +519,7 @@ namespace BTM
 
                 subcommands.Add(
                     new KeywordConsumer(
-                        new ConsoleMessageWriter(
+                        new ConsoleLineWriter(
                             new BuilderDescriptor(collection, new StopBuilderLogger(new StopTextBuilder())), 
                             "`id`: numeric, `name`: string, `type`: string"
                         ), "secondary"
@@ -475,7 +537,7 @@ namespace BTM
                             new IdBuilderAdder(subcommands, builder), 
                             new NameBuilderAdder(subcommands, builder), 
                             new TypeBuilderAdder(subcommands, builder),
-                            new ConsoleMessageWriter(subcommands, $"Previous line contains an error.")
+                            new ConsoleLineWriter(subcommands, $"Previous line contains an error.")
                         })
                     );
                 }
@@ -488,7 +550,7 @@ namespace BTM
             {
                 subcommands.Add(
                     new KeywordConsumer(
-                        new ConsoleMessageWriter(
+                        new ConsoleLineWriter(
                             new BuilderDescriptor(collection, new BytebusBuilderLogger(new BytebusBaseBuilder())), 
                             "`id`: numeric, `engine`: string"
                         ), "base"
@@ -496,7 +558,7 @@ namespace BTM
 
                 subcommands.Add(
                     new KeywordConsumer(
-                        new ConsoleMessageWriter(
+                        new ConsoleLineWriter(
                             new BuilderDescriptor(collection, new BytebusBuilderLogger(new BytebusTextBuilder())), 
                             "`id`: numeric, `engine`: string"
                         ), "secondary"
@@ -513,7 +575,7 @@ namespace BTM
                             new BuildDiscarder(), 
                             new IdBuilderAdder(subcommands, builder), 
                             new EngineBuilderAdder(subcommands, builder),
-                            new ConsoleMessageWriter(subcommands, $"Previous line contains an error.")
+                            new ConsoleLineWriter(subcommands, $"Previous line contains an error.")
                         })
                     );
                 }
@@ -526,7 +588,7 @@ namespace BTM
             {
                 subcommands.Add(
                     new KeywordConsumer(
-                        new ConsoleMessageWriter(
+                        new ConsoleLineWriter(
                             new BuilderDescriptor(collection, new TramBuilderLogger(new TramBaseBuilder())), 
                             "`id`: numeric, `carsNumber`: numeric"
                         ), "base"
@@ -534,7 +596,7 @@ namespace BTM
 
                 subcommands.Add(
                     new KeywordConsumer(
-                        new ConsoleMessageWriter(
+                        new ConsoleLineWriter(
                             new BuilderDescriptor(collection, new TramBuilderLogger(new TramTextBuilder())), 
                             "`id`: numeric, `carsNumber`: numeric"
                         ), "secondary"
@@ -551,7 +613,7 @@ namespace BTM
                             new BuildDiscarder(), 
                             new IdBuilderAdder(subcommands, builder), 
                             new CarsNumberBuilderAdder(subcommands, builder),
-                            new ConsoleMessageWriter(subcommands, $"Previous line contains an error.")
+                            new ConsoleLineWriter(subcommands, $"Previous line contains an error.")
                         })
                     );
                 }
@@ -564,7 +626,7 @@ namespace BTM
             {
                 subcommands.Add(
                     new KeywordConsumer(
-                        new ConsoleMessageWriter(
+                        new ConsoleLineWriter(
                             new BuilderDescriptor(collection, new DriverBuilderLogger(new DriverBaseBuilder())), 
                             "`name`: string, `surname`: string, `seniority`: numeric"
                         ), "base"
@@ -572,7 +634,7 @@ namespace BTM
 
                 subcommands.Add(
                     new KeywordConsumer(
-                        new ConsoleMessageWriter(
+                        new ConsoleLineWriter(
                             new BuilderDescriptor(collection, new DriverBuilderLogger(new DriverTextBuilder())), 
                             "`name`: string, `surname`: string, `seniority`: numeric"
                         ), "secondary"
@@ -590,7 +652,7 @@ namespace BTM
                             new NameBuilderAdder(subcommands, builder), 
                             new SurnameBuilderAdder(subcommands, builder), 
                             new SeniorityBuilderAdder(subcommands, builder),
-                            new ConsoleMessageWriter(subcommands, $"Previous line contains an error.")
+                            new ConsoleLineWriter(subcommands, $"Previous line contains an error.")
                         })
                     );
                 }
@@ -614,16 +676,17 @@ namespace BTM
         private class EditConfirmer<BTMBase> : KeywordConsumer where BTMBase : class, IBTMBase
         {
             public EditConfirmer(NamedCollection<BTMBase> collection, All<BTMBase> filters, ActionSequence<BTMBase> actionSequence) : 
-                base(new ConsoleMessageWriter(new List<CommandBase>() {
-                    new EditExecutorReturner<BTMBase>(collection, filters, actionSequence)
-                }, "Object succesfully registered for edit."), "done")
+                base(new ConsoleLineWriter(
+                    new EditExecutorReturner<BTMBase>(collection, filters, actionSequence), 
+                    "Object succesfully registered for edit."
+                ), "done")
             { }
         }
 
         private class EditDiscarder : KeywordConsumer
         {
             public EditDiscarder() : 
-                base(new ConsoleMessageWriter("No object registered for edit."), "exit")
+                base(new ConsoleLineWriter("No object registered for edit."), "exit")
             { }
         }
 
@@ -636,17 +699,17 @@ namespace BTM
                 subcommands.Add(new CommonNameFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new RecordNumberVerifier<ILine>(
                     1, 
-                    new EditDescriptor(new NamedCollection<ILine>(collection, collectionName), collectionFilter, new ActionSequence<ILine>()), 
-                    new ConsoleMessageWriter(new List<CommandBase>(), "Conditions do not specify one record uniquely."), 
+                    new EditDescriptor(new NamedCollection<ILine>(collection, collectionName), collectionFilter, setActions), 
+                    new ConsoleLineWriter("Conditions do not specify one record uniquely."), 
                     collection, 
                     collectionFilter
                 ));
             }
 
-            private class EditDescriptor : ConsoleMessageWriter
+            private class EditDescriptor : ConsoleLineWriter
             {
                 public EditDescriptor(NamedCollection<ILine> collection, All<ILine> filter, ActionSequence<ILine> setActions) : 
-                    base(new List<CommandBase>(), "`numberDec`: numeric, `numberHex`: string, `commonName`: string")
+                    base("`numberDec`: numeric, `numberHex`: string, `commonName`: string")
                 {   
                     subcommands.Add(
                         new ConsoleLineReader(new List<CommandBase>() {
@@ -655,7 +718,7 @@ namespace BTM
                             new NumberDecSetterAdder(subcommands, setActions), 
                             new NumberHexSetterAdder(subcommands, setActions), 
                             new CommonNameSetterAdder(subcommands, setActions),
-                            new ConsoleMessageWriter(subcommands, $"Previous line contains an error.")
+                            new ConsoleLineWriter(subcommands, $"Previous line contains an error.")
                         }));
                 }
             }
@@ -670,17 +733,17 @@ namespace BTM
                 subcommands.Add(new TypeFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new RecordNumberVerifier<IStop>(
                     1, 
-                    new EditDescriptor(new NamedCollection<IStop>(collection, collectionName), collectionFilter, new ActionSequence<IStop>()), 
-                    new ConsoleMessageWriter(new List<CommandBase>(), "Conditions do not specify one record uniquely."), 
+                    new EditDescriptor(new NamedCollection<IStop>(collection, collectionName), collectionFilter, setActions), 
+                    new ConsoleLineWriter("Conditions do not specify one record uniquely."), 
                     collection, 
                     collectionFilter
                 ));
             }
 
-            private class EditDescriptor : ConsoleMessageWriter
+            private class EditDescriptor : ConsoleLineWriter
             {
                 public EditDescriptor(NamedCollection<IStop> collection, All<IStop> filter, ActionSequence<IStop> setActions) : 
-                    base(new List<CommandBase>(), "`id`: numeric, `name`: string, `type`: string")
+                    base("`id`: numeric, `name`: string, `type`: string")
                 {   
                     subcommands.Add(
                         new ConsoleLineReader(new List<CommandBase>() {
@@ -689,7 +752,7 @@ namespace BTM
                             new IdSetterAdder(subcommands, setActions), 
                             new NameSetterAdder(subcommands, setActions), 
                             new TypeSetterAdder(subcommands, setActions),
-                            new ConsoleMessageWriter(subcommands, $"Previous line contains an error.")
+                            new ConsoleLineWriter(subcommands, $"Previous line contains an error.")
                         }));
                 }
             }
@@ -703,17 +766,17 @@ namespace BTM
                 subcommands.Add(new EngineFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new RecordNumberVerifier<IBytebus>(
                     1, 
-                    new EditDescriptor(new NamedCollection<IBytebus>(collection, collectionName), collectionFilter, new ActionSequence<IBytebus>()), 
-                    new ConsoleMessageWriter(new List<CommandBase>(), "Conditions do not specify one record uniquely."), 
+                    new EditDescriptor(new NamedCollection<IBytebus>(collection, collectionName), collectionFilter, setActions), 
+                    new ConsoleLineWriter("Conditions do not specify one record uniquely."), 
                     collection, 
                     collectionFilter
                 ));
             }
 
-            private class EditDescriptor : ConsoleMessageWriter
+            private class EditDescriptor : ConsoleLineWriter
             {
                 public EditDescriptor(NamedCollection<IBytebus> collection, All<IBytebus> filter, ActionSequence<IBytebus> setActions) : 
-                    base(new List<CommandBase>(), "`id`: numeric, `engine`: string")
+                    base("`id`: numeric, `engine`: string")
                 {   
                     subcommands.Add(
                         new ConsoleLineReader(new List<CommandBase>() {
@@ -721,7 +784,7 @@ namespace BTM
                             new EditDiscarder(), 
                             new IdSetterAdder(subcommands, setActions), 
                             new EngineSetterAdder(subcommands, setActions), 
-                            new ConsoleMessageWriter(subcommands, $"Previous line contains an error.")
+                            new ConsoleLineWriter(subcommands, $"Previous line contains an error.")
                         }));
                 }
             }
@@ -735,17 +798,17 @@ namespace BTM
                 subcommands.Add(new CarsNumberFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new RecordNumberVerifier<ITram>(
                     1, 
-                    new EditDescriptor(new NamedCollection<ITram>(collection, collectionName), collectionFilter, new ActionSequence<ITram>()), 
-                    new ConsoleMessageWriter(new List<CommandBase>(), "Conditions do not specify one record uniquely."), 
+                    new EditDescriptor(new NamedCollection<ITram>(collection, collectionName), collectionFilter, setActions), 
+                    new ConsoleLineWriter("Conditions do not specify one record uniquely."), 
                     collection, 
                     collectionFilter
                 ));
             }
 
-            private class EditDescriptor : ConsoleMessageWriter
+            private class EditDescriptor : ConsoleLineWriter
             {
                 public EditDescriptor(NamedCollection<ITram> collection, All<ITram> filter, ActionSequence<ITram> setActions) : 
-                    base(new List<CommandBase>(), "`id`: numeric, `carsNumber`: numeric")
+                    base("`id`: numeric, `carsNumber`: numeric")
                 {   
                     subcommands.Add(
                         new ConsoleLineReader(new List<CommandBase>() {
@@ -753,7 +816,7 @@ namespace BTM
                             new EditDiscarder(), 
                             new IdSetterAdder(subcommands, setActions), 
                             new CarsNumberSetterAdder(subcommands, setActions), 
-                            new ConsoleMessageWriter(subcommands, $"Previous line contains an error.")
+                            new ConsoleLineWriter(subcommands, $"Previous line contains an error.")
                         }));
                 }
             }
@@ -766,24 +829,24 @@ namespace BTM
                 subcommands.Add(new IdFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new RecordNumberVerifier<IVehicle>(
                     1, 
-                    new EditDescriptor(new NamedCollection<IVehicle>(collection, collectionName), collectionFilter, new ActionSequence<IVehicle>()), 
-                    new ConsoleMessageWriter(new List<CommandBase>(), "Conditions do not specify one record uniquely."), 
+                    new EditDescriptor(new NamedCollection<IVehicle>(collection, collectionName), collectionFilter, setActions), 
+                    new ConsoleLineWriter("Conditions do not specify one record uniquely."), 
                     collection, 
                     collectionFilter
                 ));
             }
 
-            private class EditDescriptor : ConsoleMessageWriter
+            private class EditDescriptor : ConsoleLineWriter
             {
                 public EditDescriptor(NamedCollection<IVehicle> collection, All<IVehicle> filter, ActionSequence<IVehicle> setActions) : 
-                    base(new List<CommandBase>(), "`id`: numeric")
+                    base("`id`: numeric")
                 {   
                     subcommands.Add(
                         new ConsoleLineReader(new List<CommandBase>() {
                             new EditConfirmer<IVehicle>(collection, filter, setActions),
                             new EditDiscarder(), 
                             new IdSetterAdder(subcommands, setActions), 
-                            new ConsoleMessageWriter(subcommands, $"Previous line contains an error.")
+                            new ConsoleLineWriter(subcommands, $"Previous line contains an error.")
                         }));
                 }
             }
@@ -798,17 +861,17 @@ namespace BTM
                 subcommands.Add(new SeniorityFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new RecordNumberVerifier<IDriver>(
                     1, 
-                    new EditDescriptor(new NamedCollection<IDriver>(collection, collectionName), collectionFilter, new ActionSequence<IDriver>()), 
-                    new ConsoleMessageWriter(new List<CommandBase>(), "Conditions do not specify one record uniquely."), 
+                    new EditDescriptor(new NamedCollection<IDriver>(collection, collectionName), collectionFilter, setActions), 
+                    new ConsoleLineWriter("Conditions do not specify one record uniquely."), 
                     collection, 
                     collectionFilter
                 ));
             }
 
-            private class EditDescriptor : ConsoleMessageWriter
+            private class EditDescriptor : ConsoleLineWriter
             {
                 public EditDescriptor(NamedCollection<IDriver> collection, All<IDriver> filter, ActionSequence<IDriver> setActions) : 
-                    base(new List<CommandBase>(), "`name`: string, `surname`: string, `seniority`: numeric")
+                    base("`name`: string, `surname`: string, `seniority`: numeric")
                 {   
                     subcommands.Add(
                         new ConsoleLineReader(new List<CommandBase>() {
@@ -817,7 +880,7 @@ namespace BTM
                             new NameSetterAdder(subcommands, setActions), 
                             new SurnameSetterAdder(subcommands, setActions), 
                             new SenioritySetterAdder(subcommands, setActions), 
-                            new ConsoleMessageWriter(subcommands, $"Previous line contains an error.")
+                            new ConsoleLineWriter(subcommands, $"Previous line contains an error.")
                         }));
                 }
             }
@@ -836,11 +899,10 @@ namespace BTM
             }, "delete")
         { }
 
-        private class Deleter<BTMBase> : ConsoleMessageWriter where BTMBase : IBTMBase
+        private class Deleter<BTMBase> : ConsoleLineWriter where BTMBase : IBTMBase
         {
-            public Deleter(NamedCollection<BTMBase> collection, All<BTMBase> filter) : base(new List<CommandBase>() {
-                new DeleteExecutorReturner<BTMBase>(collection, filter)
-            }, "Object succesfully registered for deletion.")
+            public Deleter(NamedCollection<BTMBase> collection, All<BTMBase> filter) : 
+                base(new DeleteExecutorReturner<BTMBase>(collection, filter), "Object succesfully registered for deletion.")
             { }
         }
 
@@ -854,7 +916,7 @@ namespace BTM
                 subcommands.Add(new RecordNumberVerifier<ILine>(
                     1, 
                     new Deleter<ILine>(new NamedCollection<ILine>(collection, collectionName), collectionFilter), 
-                    new ConsoleMessageWriter("Conditions do not specify one record uniquely."), 
+                    new ConsoleLineWriter("Conditions do not specify one record uniquely."), 
                     collection, 
                     collectionFilter
                 ));
@@ -871,7 +933,7 @@ namespace BTM
                 subcommands.Add(new RecordNumberVerifier<IStop>(
                     1, 
                     new Deleter<IStop>(new NamedCollection<IStop>(collection, collectionName), collectionFilter), 
-                    new ConsoleMessageWriter("Conditions do not specify one record uniquely."), 
+                    new ConsoleLineWriter("Conditions do not specify one record uniquely."), 
                     collection, 
                     collectionFilter
                 ));
@@ -887,7 +949,7 @@ namespace BTM
                 subcommands.Add(new RecordNumberVerifier<IBytebus>(
                     1, 
                     new Deleter<IBytebus>(new NamedCollection<IBytebus>(collection, collectionName), collectionFilter), 
-                    new ConsoleMessageWriter("Conditions do not specify one record uniquely."), 
+                    new ConsoleLineWriter("Conditions do not specify one record uniquely."), 
                     collection, 
                     collectionFilter
                 ));
@@ -903,7 +965,7 @@ namespace BTM
                 subcommands.Add(new RecordNumberVerifier<ITram>(
                     1, 
                     new Deleter<ITram>(new NamedCollection<ITram>(collection, collectionName), collectionFilter), 
-                    new ConsoleMessageWriter("Conditions do not specify one record uniquely."), 
+                    new ConsoleLineWriter("Conditions do not specify one record uniquely."), 
                     collection, 
                     collectionFilter
                 ));
@@ -920,7 +982,7 @@ namespace BTM
                 subcommands.Add(new RecordNumberVerifier<IDriver>(
                     1, 
                     new Deleter<IDriver>(new NamedCollection<IDriver>(collection, collectionName), collectionFilter), 
-                    new ConsoleMessageWriter("Conditions do not specify one record uniquely."), 
+                    new ConsoleLineWriter("Conditions do not specify one record uniquely."), 
                     collection, 
                     collectionFilter
                 ));

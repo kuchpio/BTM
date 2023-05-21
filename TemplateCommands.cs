@@ -27,7 +27,7 @@ namespace BTM {
         {
             input = Process(input);
 
-            if (subcommands.Count == 0) return null;
+            if (subcommands.Count == 0 || input == null) return null;
 
             input = input.Trim();
 
@@ -39,7 +39,7 @@ namespace BTM {
                 }
             }
             
-            Console.WriteLine($"Unknown command syntax near: \n`{input}`");
+            Console.Error.WriteLine($"Unknown command syntax near: \n`{input}`");
             return null;
         }
     }
@@ -335,6 +335,7 @@ namespace BTM {
         protected string collectionName;
         protected IBTMCollection<BTMBase> collection;
         protected All<BTMBase> collectionFilter;
+        protected ActionSequence<BTMBase> setActions;
 
         public CollectionSelector(IBTMCollection<BTMBase> collection, string collectionName) : 
             this(new List<CommandBase>(), collection, collectionName)
@@ -345,12 +346,14 @@ namespace BTM {
         {
             this.collection = collection;
             collectionFilter = new All<BTMBase>();
+            setActions = new ActionSequence<BTMBase>();
             this.collectionName = collectionName;
         }
 
         public override void Action()
         {
             collectionFilter.Clear();
+            setActions.Clear();
         }
     }
 
@@ -882,9 +885,12 @@ namespace BTM {
         }
     }
 
-    abstract class LineReader : CommandBase
+    class ConsoleLineReader : CommandBase
     {   
-        public LineReader(List<CommandBase> subcommands) : base(subcommands)
+        public ConsoleLineReader(List<CommandBase> subcommands) : base(subcommands)
+        { }
+
+        public ConsoleLineReader(CommandBase subcommand) : base(new List<CommandBase>() { subcommand })
         { }
         
         public override bool Check(string input)
@@ -893,33 +899,26 @@ namespace BTM {
         }
 
         public override string Process(string input)
-        {
-            return GetNextLine();
-        }
-
-        public abstract string GetNextLine();
-    }
-
-    class ConsoleLineReader : LineReader
-    {
-        public ConsoleLineReader(List<CommandBase> subcommands) : base(subcommands)
-        { }
-        
-        public override string GetNextLine()
         {
             return Console.ReadLine();
         }
     }
 
-    abstract class MessageWriter : CommandBase
+    class ConsoleLineWriter : CommandBase
     {
         private string message;
 
-        public MessageWriter(List<CommandBase> subcommands, string message) :
+        public ConsoleLineWriter(List<CommandBase> subcommands, string message) :
             base(subcommands)
         {
             this.message = message;
         }
+
+        public ConsoleLineWriter(CommandBase subcommand, string message) : this(new List<CommandBase>() { subcommand }, message)
+        { }
+
+        public ConsoleLineWriter(string message) : this(new List<CommandBase>(), message)
+        { }
         
         public override bool Check(string input)
         {
@@ -928,27 +927,8 @@ namespace BTM {
 
         public override string Process(string input)
         {
-            Write(message);
-            return input;
-        }
-
-        public abstract void Write(string message);
-    }
-
-    class ConsoleMessageWriter : MessageWriter
-    {
-        public ConsoleMessageWriter(List<CommandBase> subcommands, string message) : base(subcommands, message)
-        { }
-
-        public ConsoleMessageWriter(CommandBase subcommand, string message) : this(new List<CommandBase>() { subcommand }, message)
-        { }
-
-        public ConsoleMessageWriter(string message) : this(new List<CommandBase>(), message)
-        { }
-
-        public override void Write(string message)
-        {
             Console.WriteLine(message);
+            return input;
         }
     }
 
