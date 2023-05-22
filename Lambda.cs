@@ -1,4 +1,7 @@
 
+using System;
+using System.Collections.Generic;
+
 namespace BTM
 {
     interface IPredicate<BTMBase> where BTMBase : IBTMBase
