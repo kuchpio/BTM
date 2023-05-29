@@ -6,12 +6,11 @@ using BTM.Hashmap;
 namespace BTM
 {
     
-    interface IBytebus : IVehicle, IBTMBase
+    interface IBytebus : IVehicle, IBTMBase, IRestoreable<IBytebus>
     {
         string EngineClass { get; set; }
         IIterator<ILine> Lines { get; }
         void AddLine(ILine line);
-        void CopyFrom(IBytebus src);
     }
 
     class BytebusBase : VehicleBase, IBytebus
@@ -40,7 +39,7 @@ namespace BTM
             return $"Id: {Id}, Lines: [{CollectionUtils.ToString(Lines)}], Engine: {EngineClass}, Driver: {driver}";
         }
 
-        public override object Clone()
+        public override IBytebus Clone()
         {
             BytebusBase bytebus = new BytebusBase(Id, EngineClass);
             bytebus.lines.Add(Lines);
@@ -132,7 +131,7 @@ namespace BTM
             return Id.ToString();
         }
 
-        public object Clone()
+        public IBytebus Clone()
         {
             BytebusTextAdapter bytebus = new BytebusTextAdapter(Id, EngineClass);
             bytebus.lines.Add(Lines);
@@ -153,6 +152,8 @@ namespace BTM
             Id = src.Id;
             Driver = src.Driver;
         }
+
+        IVehicle IRestoreable<IVehicle>.Clone() => this.Clone();
     }
 
     class BytebusHashMapAdapter : IBytebus
@@ -208,7 +209,7 @@ namespace BTM
             return Id.ToString();
         }
 
-        public object Clone()
+        public IBytebus Clone()
         {
             BytebusHashMapAdapter bytebus = new BytebusHashMapAdapter(Id, EngineClass);
             bytebus.lines.Add(Lines);
@@ -229,6 +230,8 @@ namespace BTM
             Id = src.Id;
             Driver = src.Driver;
         }
+
+        IVehicle IRestoreable<IVehicle>.Clone() => this.Clone();
     }
 
     interface IBytebusBuilder : IBTMBuilder<IBytebus>

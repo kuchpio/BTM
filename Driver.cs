@@ -5,14 +5,13 @@ using BTM.Hashmap;
 
 namespace BTM
 {
-    interface IDriver : IBTMBase
+    interface IDriver : IBTMBase, IRestoreable<IDriver>
     {
         string Name { get; set; }
         string Surname { get; set; }
         int Seniority { get; set; }
         IIterator<IVehicle> Vehicles { get; }
         void AddVehicle(IVehicle vehicle);
-        void CopyFrom(IDriver src);
     }
 
     class DriverBase : IDriver
@@ -51,7 +50,7 @@ namespace BTM
             return $"Fullname: {Name} {Surname}, Seniority: {Seniority}, Vehicles: [{CollectionUtils.ToString(Vehicles)}]";
         }
 
-        public object Clone()
+        public IDriver Clone()
         {
             DriverBase driver = new DriverBase(Name, Surname, Seniority);
             driver.vehicles.Add(Vehicles);
@@ -160,7 +159,7 @@ namespace BTM
             return $"Fullname: {Name} {Surname}, Seniority: {Seniority}, Vehicles: [{CollectionUtils.ToString(Vehicles)}]";
         }
 
-        public object Clone()
+        public IDriver Clone()
         {
             DriverTextAdapter driver = new DriverTextAdapter(Name, Surname, Seniority);
             driver.vehicles.Add(Vehicles);
@@ -233,7 +232,7 @@ namespace BTM
             return $"Fullname: {Name} {Surname}, Seniority: {Seniority}, Vehicles: [{CollectionUtils.ToString(Vehicles)}]";
         }
 
-        public object Clone()
+        public IDriver Clone()
         {
             DriverHashMapAdapter driver = new DriverHashMapAdapter(Name, Surname, Seniority);
             driver.vehicles.Add(Vehicles);

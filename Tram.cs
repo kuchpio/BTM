@@ -5,11 +5,10 @@ using System.Collections.Generic;
 
 namespace BTM
 {
-    interface ITram : IVehicle, IBTMBase
+    interface ITram : IVehicle, IBTMBase, IRestoreable<ITram>
     {
         int CarsNumber { get; set; }
         ILine Line { get; set; }
-        void CopyFrom(ITram src);
     }
 
     class TramBase : VehicleBase, ITram
@@ -33,7 +32,7 @@ namespace BTM
             return $"Id: {Id}, Cars: {CarsNumber}, Line: {lineNumber}, Driver: {driver}";
         }
 
-        public override object Clone()
+        public override ITram Clone()
         {
             TramBase tram = new TramBase(Id, CarsNumber, Line);
             tram.Driver = Driver;
@@ -124,7 +123,7 @@ namespace BTM
             return Id.ToString();
         }
 
-        public object Clone()
+        public ITram Clone()
         {
             TramTextAdapter tram = new TramTextAdapter(Id, CarsNumber, Line);
             tram.Driver = Driver;
@@ -143,6 +142,8 @@ namespace BTM
             Id = src.Id;
             Driver = src.Driver;
         }
+
+        IVehicle IRestoreable<IVehicle>.Clone() => this.Clone();
     }
 
     class TramHashMapAdapter : ITram
@@ -193,7 +194,7 @@ namespace BTM
             return Id.ToString();
         }
 
-        public object Clone()
+        public ITram Clone()
         {
             TramHashMapAdapter tram = new TramHashMapAdapter(Id, CarsNumber, Line);
             tram.Driver = Driver;
@@ -212,6 +213,8 @@ namespace BTM
             Id = src.Id;
             Driver = src.Driver;
         }
+
+        IVehicle IRestoreable<IVehicle>.Clone() => this.Clone();
     }
     interface ITramBuilder : IBTMBuilder<ITram>
     {

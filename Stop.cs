@@ -5,14 +5,13 @@ using BTM.Hashmap;
 
 namespace BTM
 {
-    interface IStop : IBTMBase
+    interface IStop : IBTMBase, IRestoreable<IStop>
     {
         int Id { get; set; }
         string Name { get; set; }
         string Type { get; set; }
         IIterator<ILine> Lines { get; }
         void AddLine(ILine line);
-        void CopyFrom(IStop src);
     }
 
     class StopBase : IStop
@@ -50,7 +49,7 @@ namespace BTM
             return $"Id: {Id}, Name: {Name}, Type: {Type}, Lines: [{CollectionUtils.ToString(Lines)}]";
         }
 
-        public object Clone()
+        public IStop Clone()
         {
             StopBase stop = new StopBase(Id, Name, Type);
             stop.lines.Add(Lines);
@@ -157,7 +156,7 @@ namespace BTM
             return $"Id: {Id}, Name: {Name}, Type: {Type}, Lines: [{CollectionUtils.ToString(Lines)}]";
         }
 
-        public object Clone()
+        public IStop Clone()
         {
             StopTextAdapter stop = new StopTextAdapter(Id, Name, Type);
             stop.lines.Add(Lines);
@@ -230,7 +229,7 @@ namespace BTM
             return $"Id: {Id}, Name: {Name}, Type: {Type}, Lines: [{CollectionUtils.ToString(Lines)}]";
         }
 
-        public object Clone()
+        public IStop Clone()
         {
             StopHashMapAdapter stop = new StopHashMapAdapter(Id, Name, Type);
             stop.lines.Add(Lines);

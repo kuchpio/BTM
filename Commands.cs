@@ -740,10 +740,9 @@ namespace BTM
             IEnumerable<CommandBase> Create(List<CommandBase> subcommands, ActionSequence<BTMBase> setActions);
         }
 
-        private class EditDecider<BTMBase, SetterAddersFactory, CopyAction> : RecordNumberVerifier<BTMBase> 
-            where BTMBase : class, IBTMBase
+        private class EditDecider<BTMBase, SetterAddersFactory> : RecordNumberVerifier<BTMBase> 
+            where BTMBase : class, IBTMBase, IRestoreable<BTMBase>
             where SetterAddersFactory : ISetterAddersFactory<BTMBase>, new()
-            where CopyAction : IBinaryAction<BTMBase>, new()
         {
             public EditDecider(IBTMCollection<BTMBase> collection, All<BTMBase> filter, ActionSequence<BTMBase> setActions, string collectionName, string fieldsDescription) : 
                 base(
@@ -762,7 +761,7 @@ namespace BTM
                 {   
                     List<CommandBase> readerSubcommands = new List<CommandBase>();
                     readerSubcommands.Add(new KeywordConsumer(new ConsoleLineWriter(
-                        new EditExecutorFactory<BTMBase>(collection, filter, setActions, collectionName, new CopyAction()), 
+                        new EditExecutorFactory<BTMBase>(collection, filter, setActions, collectionName), 
                         "Object succesfully registered for edit."
                     ), "done"));
                     readerSubcommands.Add(new KeywordConsumer(new ConsoleLineWriter("No object registered for edit."), "exit"));
@@ -780,7 +779,7 @@ namespace BTM
                 subcommands.Add(new NumberDecFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new NumberHexFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new CommonNameFilterAdder(subcommands, collectionFilter));
-                subcommands.Add(new EditDecider<ILine, SetterAddersFactory, CopyAction>(
+                subcommands.Add(new EditDecider<ILine, SetterAddersFactory>(
                     collection, 
                     collectionFilter, 
                     setActions, 
@@ -800,14 +799,6 @@ namespace BTM
                     };
                 }
             }
-
-            private class CopyAction : IBinaryAction<ILine>
-            {
-                public void Eval(ILine src, ILine dest)
-                {
-                    dest.CopyFrom(src);
-                }
-            }
         }
 
         private class EditStop : StopSelector
@@ -817,7 +808,7 @@ namespace BTM
                 subcommands.Add(new IdFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new NameFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new TypeFilterAdder(subcommands, collectionFilter));
-                subcommands.Add(new EditDecider<IStop, SetterAddersFactory, CopyAction>(
+                subcommands.Add(new EditDecider<IStop, SetterAddersFactory>(
                     collection, 
                     collectionFilter, 
                     setActions, 
@@ -837,14 +828,6 @@ namespace BTM
                     };
                 }
             }
-
-            private class CopyAction : IBinaryAction<IStop>
-            {
-                public void Eval(IStop src, IStop dest)
-                {
-                    dest.CopyFrom(src);
-                }
-            }
         }
 
         private class EditBytebus : BytebusSelector
@@ -853,7 +836,7 @@ namespace BTM
             {
                 subcommands.Add(new IdFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new EngineFilterAdder(subcommands, collectionFilter));
-                subcommands.Add(new EditDecider<IBytebus, SetterAddersFactory, CopyAction>(
+                subcommands.Add(new EditDecider<IBytebus, SetterAddersFactory>(
                     collection, 
                     collectionFilter, 
                     setActions, 
@@ -872,14 +855,6 @@ namespace BTM
                     };
                 }
             }
-
-            private class CopyAction : IBinaryAction<IBytebus>
-            {
-                public void Eval(IBytebus src, IBytebus dest)
-                {
-                    dest.CopyFrom(src);
-                }
-            }
         }
 
         private class EditTram : TramSelector
@@ -888,7 +863,7 @@ namespace BTM
             {
                 subcommands.Add(new IdFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new CarsNumberFilterAdder(subcommands, collectionFilter));
-                subcommands.Add(new EditDecider<ITram, SetterAddersFactory, CopyAction>(
+                subcommands.Add(new EditDecider<ITram, SetterAddersFactory>(
                     collection, 
                     collectionFilter, 
                     setActions, 
@@ -907,14 +882,6 @@ namespace BTM
                     };
                 }
             }
-
-            private class CopyAction : IBinaryAction<ITram>
-            {
-                public void Eval(ITram src, ITram dest)
-                {
-                    dest.CopyFrom(src);
-                }
-            }
         }
 
         private class EditVehicle : VehicleSelector
@@ -922,7 +889,7 @@ namespace BTM
             public EditVehicle()
             {
                 subcommands.Add(new IdFilterAdder(subcommands, collectionFilter));
-                subcommands.Add(new EditDecider<IVehicle, SetterAddersFactory, CopyAction>(
+                subcommands.Add(new EditDecider<IVehicle, SetterAddersFactory>(
                     collection, 
                     collectionFilter, 
                     setActions, 
@@ -940,14 +907,6 @@ namespace BTM
                     };
                 }
             }
-
-            private class CopyAction : IBinaryAction<IVehicle>
-            {
-                public void Eval(IVehicle src, IVehicle dest)
-                {
-                    dest.CopyFrom(src);
-                }
-            }
         }
 
         private class EditDriver : DriverSelector
@@ -957,7 +916,7 @@ namespace BTM
                 subcommands.Add(new NameFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new SurnameFilterAdder(subcommands, collectionFilter));
                 subcommands.Add(new SeniorityFilterAdder(subcommands, collectionFilter));
-                subcommands.Add(new EditDecider<IDriver, SetterAddersFactory, CopyAction>(
+                subcommands.Add(new EditDecider<IDriver, SetterAddersFactory>(
                     collection, 
                     collectionFilter, 
                     setActions, 
@@ -975,14 +934,6 @@ namespace BTM
                         new SurnameSetterAdder(subcommands, setActions), 
                         new SenioritySetterAdder(subcommands, setActions)
                     };
-                }
-            }
-
-            private class CopyAction : IBinaryAction<IDriver>
-            {
-                public void Eval(IDriver src, IDriver dest)
-                {
-                    dest.CopyFrom(src);
                 }
             }
         }

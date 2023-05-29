@@ -2,11 +2,10 @@
 
 namespace BTM
 {
-    interface IVehicle : IBTMBase
+    interface IVehicle : IBTMBase, IRestoreable<IVehicle>
     {
         int Id { get; set; }
         IDriver Driver { get; set; }
-        void CopyFrom(IVehicle src);
     }
 
     abstract class VehicleBase : IVehicle
@@ -27,7 +26,7 @@ namespace BTM
             return id.ToString();
         }
 
-        public abstract object Clone();
+        public abstract IVehicle Clone();
         public void CopyFrom(IVehicle src)
         {
             Id = src.Id;

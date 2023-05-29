@@ -108,58 +108,58 @@ namespace BTM
         public override string ToString() => commandString;
     }
 
-    class EditExecutorFactory<BTMBase> : ExecutorFactory where BTMBase : class, IBTMBase
+    class EditExecutorFactory<BTMBase> : ExecutorFactory where BTMBase : class, IBTMBase, IRestoreable<BTMBase>
     {
         private IBTMCollection<BTMBase> collection;
         private All<BTMBase> filter;
         private ActionSequence<BTMBase> actionSequence;
         private string collectionName;
-        private IBinaryAction<BTMBase> copyAction;
 
-        public EditExecutorFactory(IBTMCollection<BTMBase> collection, All<BTMBase> filter, ActionSequence<BTMBase> actionSequence, string collectionName, IBinaryAction<BTMBase> copyAction)
+        public EditExecutorFactory(IBTMCollection<BTMBase> collection, All<BTMBase> filter, ActionSequence<BTMBase> actionSequence, string collectionName)
         {
             this.collection = collection;
             this.filter = filter;
             this.actionSequence = actionSequence;
             this.collectionName = collectionName;
-            this.copyAction = copyAction;
         }
 
         public override IExecutor Execute(string input)
         {
             return new EditExecutor<BTMBase>(
-                CollectionUtils.Find(collection.First(), filter), 
+                collection, 
+                filter, 
                 actionSequence.Clone(), 
-                $"edit {collectionName} {filter}\n{actionSequence}\ndone", 
-                copyAction
+                $"edit {collectionName} {filter}\n{actionSequence}\ndone"
             );
         }
     }
 
-    class EditExecutor<BTMBase> : IExecutor where BTMBase : class, IBTMBase
+    class EditExecutor<BTMBase> : IExecutor where BTMBase : class, IBTMBase, IRestoreable<BTMBase>
     {
+        private IBTMCollection<BTMBase> collection;
+        private All<BTMBase> filter;
         private ActionSequence<BTMBase> actionSequence;
         private BTMBase editedObject, objectBackup;
         private string commandString;
-        private IBinaryAction<BTMBase> copyAction;
 
-        public EditExecutor(BTMBase editedObject, ActionSequence<BTMBase> actionSequence, string commandString, IBinaryAction<BTMBase> copyAction)
+        public EditExecutor(IBTMCollection<BTMBase> collection, All<BTMBase> filter, ActionSequence<BTMBase> actionSequence, string commandString)
         {
+            this.collection = collection;
+            this.filter = filter;
             this.actionSequence = actionSequence;
-            this.editedObject = editedObject;
             this.commandString = commandString;
-            this.copyAction = copyAction;
         }
         
         public void Do()
         {
-            objectBackup = (BTMBase)editedObject.Clone();
+            editedObject = CollectionUtils.Find(collection.First(), filter);
+            objectBackup = editedObject.Clone();
             actionSequence.Eval(editedObject);
         }
 
         public void Undo()
         {
-            copyAction.Eval(objectBackup, editedObject);
+            editedObject.CopyFrom(objectBackup);
         }
 
         public override string ToString() => commandString;
@@ -182,28 +182,30 @@ namespace BTM
         {
             return new DeleteExecutor<BTMBase>(
                 collection, 
-                CollectionUtils.Find<BTMBase>(collection.First(), filter), 
+                filter, 
                 $"delete {collectionName} {filter}"
             );
         }
     }
 
-    class DeleteExecutor<BTMBase> : IExecutor where BTMBase : IBTMBase
+    class DeleteExecutor<BTMBase> : IExecutor where BTMBase : class, IBTMBase
     {
         private IBTMCollection<BTMBase> collection;
+        private All<BTMBase> filter;
         private BTMBase deletedObject;
         private string commandString;
         private int index;
 
-        public DeleteExecutor(IBTMCollection<BTMBase> collection, BTMBase deletedObject, string commandString)
+        public DeleteExecutor(IBTMCollection<BTMBase> collection, All<BTMBase> filter, string commandString)
         {
             this.collection = collection;
-            this.deletedObject = deletedObject;
+            this.filter = filter;
             this.commandString = commandString;
         }
         
         public void Do()
         {
+            deletedObject = CollectionUtils.Find<BTMBase>(collection.First(), filter);
             this.index = collection.Remove(deletedObject);
         }
 

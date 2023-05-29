@@ -5,7 +5,7 @@ using BTM.Hashmap;
 
 namespace BTM
 {
-    interface ILine : IBTMBase
+    interface ILine : IBTMBase, IRestoreable<ILine>
     {
         int NumberDec { get; set; }
         string NumberHex { get; set; }
@@ -14,7 +14,6 @@ namespace BTM
         IIterator<IVehicle> Vehicles { get; }
         void AddStop(IStop stop);
         void AddVehicle(IVehicle vehicle);
-        void CopyFrom(ILine src);
     }
 
     class LineBase : ILine
@@ -91,7 +90,7 @@ namespace BTM
             return NumberDec.ToString();
         }
 
-        public object Clone()
+        public ILine Clone()
         {
             LineBase line = new LineBase(NumberDec, CommonName);
             line.stops.Add(Stops);
@@ -220,7 +219,7 @@ namespace BTM
             return NumberDec.ToString();
         }
 
-        public object Clone()
+        public ILine Clone()
         {
             LineTextAdapter line = new LineTextAdapter(NumberDec, CommonName);
             line.stops.Add(Stops);
@@ -307,7 +306,7 @@ namespace BTM
             return NumberDec.ToString();
         }
 
-        public object Clone()
+        public ILine Clone()
         {
             LineHashMapAdapter line = new LineHashMapAdapter(NumberDec, CommonName);
             line.stops.Add(Stops);

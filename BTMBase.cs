@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace BTM
 {
-    interface IBTMBase : ICloneable
+    interface IBTMBase
     {
         string ToString();
         string ToShortString();
@@ -16,5 +16,11 @@ namespace BTM
     {
         void Reset();
         BTMBase Result();
+    }
+
+    interface IRestoreable<BTMBase> where BTMBase : IBTMBase
+    {
+        BTMBase Clone();
+        void CopyFrom(BTMBase src);
     }
 }
