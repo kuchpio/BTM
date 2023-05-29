@@ -10,8 +10,11 @@ namespace BTM
     interface IBTMCollection<BTMBase> : IEnumerable<BTMBase> where BTMBase : IBTMBase
     {
         void Add(BTMBase btmObject);
-        void Add(IIterator<BTMBase> iterator);
-        void RemoveIfFirst(IPredicate<BTMBase> predicate);
+        void Add(int index, BTMBase btmObject);
+        void Add(IIterator<BTMBase> iter);
+        int Remove(BTMBase btmObject);
+        void RemoveLast();
+        void Clear();
         IIterator<BTMBase> First();
         IIterator<BTMBase> Last();
         IIterator<BTMBase> GetForwardIterator(int startOffset = 0);
@@ -70,7 +73,7 @@ namespace BTM
             AddBack(btmObject);
         }
 
-        public void AddBack(BTMBase btmObject)
+        private void AddBack(BTMBase btmObject)
         {
             if (head == null)
             {
@@ -83,12 +86,63 @@ namespace BTM
             }
         }
 
-        public void RemoveBack()
+        public void Add(int index, BTMBase btmObject)
+        {
+            BiListNode currentNode = head;
+            for (int i = 0; i < index; i++)
+            {
+                if (currentNode == null) return;
+                currentNode = currentNode.Next;
+            }
+            if (currentNode == null) AddBack(btmObject);
+            BiListNode newNode = new BiListNode(btmObject, currentNode, currentNode.Prev);
+            currentNode.Prev = newNode;
+            if (newNode.Prev == null)
+            {
+                head = newNode;
+            }
+            else
+            {
+                newNode.Prev.Next = newNode;
+            }
+        }
+
+        public void Add(IIterator<BTMBase> iterator)
+        {
+            while (iterator.MoveNext()) Add(iterator.Current);
+        }
+
+        public int Remove(BTMBase btmObject)
+        {
+            int index = 0;
+            for (BiListNode currentNode = head; currentNode != null; currentNode = currentNode.Next)
+            {
+                if (Object.ReferenceEquals(btmObject, currentNode.Value))
+                {
+                    if (currentNode.Prev != null)
+                        currentNode.Prev.Next = currentNode.Next;
+
+                    if (currentNode.Next != null)
+                        currentNode.Next.Prev = currentNode.Prev;
+
+                    return index;
+                }
+                index++;
+            }
+            return -1;
+        }
+
+        public void RemoveLast()
         {
             if (head == null) return;
 
             tail = tail.Prev;
             if (tail != null) tail.Next = null;
+        }
+
+        public void Clear()
+        {
+            head = tail = null;
         }
 
         public IIterator<BTMBase> GetForwardIterator(int startOffset = 0)
@@ -124,11 +178,6 @@ namespace BTM
         IEnumerator IEnumerable.GetEnumerator()
         {
             return First();
-        }
-
-        public void Add(IIterator<BTMBase> iterator)
-        {
-            while (iterator.MoveNext()) Add(iterator.Current);
         }
 
         public void RemoveIfFirst(IPredicate<BTMBase> predicate)
@@ -234,16 +283,54 @@ namespace BTM
             AddBack(btmObject);
         }
 
-        public void AddBack(BTMBase btmObject)
+        public void Add(int index, BTMBase btmObject)
+        {
+            AddBack(data[size - 1]);
+            for (int i = size - 1; i > index; i--)
+            {
+                data[i] = data[i - 1];
+            }
+            data[index] = btmObject;
+        }
+
+        private void AddBack(BTMBase btmObject)
         {
             if (size == capacity) Resize(2 * capacity);
 
             data[size++] = btmObject;
         }
 
-        public void RemoveBack()
+        public void Add(IIterator<BTMBase> iterator)
         {
-            if (size > 0) data[--size] = default;
+            while (iterator.MoveNext()) Add(iterator.Current);
+        }
+
+        public int Remove(BTMBase btmObject)
+        {
+            int index = -1;
+            for (int i = 0; i < size; i++)
+            {
+                if (index >= 0)
+                {
+                    data[i - 1] = data[i];
+                }
+                else
+                {
+                    if (Object.ReferenceEquals(btmObject, data[i])) index = i;
+                }    
+            }
+            if (index >= 0) size--;
+            return index;
+        }
+
+        public void RemoveLast()
+        {
+            if (size > 0) size--;
+        }
+
+        public void Clear()
+        {
+            size = 0;
         }
 
         public IIterator<BTMBase> First()
@@ -279,28 +366,6 @@ namespace BTM
         IEnumerator IEnumerable.GetEnumerator()
         {
             return First();
-        }
-
-        public void Add(IIterator<BTMBase> iterator)
-        {
-            while (iterator.MoveNext()) Add(iterator.Current);
-        }
-
-        public void RemoveIfFirst(IPredicate<BTMBase> predicate)
-        {
-            bool found = false;
-            for (int i = 0; i < size; i++)
-            {
-                if (found)
-                {
-                    data[i - 1] = data[i];
-                }
-                else
-                {
-                    if (predicate.Eval(data[i])) found = true;
-                }    
-            }
-            if (found) size--;
         }
 
         private class VectorIterator : IIterator<BTMBase>
@@ -403,13 +468,32 @@ namespace BTM
             array[i] = item;
         }
 
-        public void Remove(BTMBase item)
+        public void Add(int index, BTMBase btmObject)
         {
-            if (array.Count == 0) return;
+            if ((index > 0 && comparerFunction.Eval(array[index - 1], btmObject) > 0) || comparerFunction.Eval(array[index], btmObject) < 0)
+                return;
+
+            array.Add(array.Last());
+            for (int j = array.Count - 2; j > index; j--)
+            {
+                array[j] = array[j - 1];
+            }
+
+            array[index] = btmObject;
+        }
+
+        public void Add(IIterator<BTMBase> iterator)
+        {
+            while (iterator.MoveNext()) Add(iterator.Current);
+        }
+
+        public int Remove(BTMBase item)
+        {
+            if (array.Count == 0) return -1;
             
             int i = FindIndexOf(item);
             if (comparerFunction.Eval(array[i], item) != 0)
-                return;
+                return -1;
 
             for (int j = i; j <= array.Count - 2; j++)
             {
@@ -417,6 +501,17 @@ namespace BTM
             }
 
             array.RemoveAt(array.Count - 1);
+            return i;
+        }
+
+        public void RemoveLast()
+        {
+            array.RemoveAt(array.Count - 1);
+        }
+
+        public void Clear()
+        {
+            array.Clear();
         }
 
         public IIterator<BTMBase> Find(BTMBase item)
@@ -461,28 +556,6 @@ namespace BTM
         IEnumerator IEnumerable.GetEnumerator()
         {
             return First();
-        }
-
-        public void Add(IIterator<BTMBase> iterator)
-        {
-            while (iterator.MoveNext()) Add(iterator.Current);
-        }
-
-        public void RemoveIfFirst(IPredicate<BTMBase> predicate)
-        {
-            bool found = false;
-            for (int i = 0; i < array.Count; i++)
-            {
-                if (found)
-                {
-                    array[i - 1] = array[i];
-                }
-                else
-                {
-                    if (predicate.Eval(array[i])) found = true;
-                }    
-            }
-            if (found) array.RemoveAt(array.Count - 1);
         }
 
         private class SortedArrayIterator : IIterator<BTMBase>

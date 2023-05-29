@@ -9,6 +9,7 @@ namespace BTM
     {
         int CarsNumber { get; set; }
         ILine Line { get; set; }
+        void CopyFrom(ITram src);
     }
 
     class TramBase : VehicleBase, ITram
@@ -30,6 +31,20 @@ namespace BTM
             string lineNumber = line == null ? "TBA" : Line.NumberDec.ToString();
             string driver = Driver == null ? "TBA" : $"{Driver.Name} {Driver.Surname}";
             return $"Id: {Id}, Cars: {CarsNumber}, Line: {lineNumber}, Driver: {driver}";
+        }
+
+        public override object Clone()
+        {
+            TramBase tram = new TramBase(Id, CarsNumber, Line);
+            tram.Driver = Driver;
+            return tram;
+        }
+
+        public void CopyFrom(ITram src)
+        {
+            base.CopyFrom(src);
+            CarsNumber = src.CarsNumber;
+            Line = src.Line;
         }
     }
 
@@ -108,6 +123,26 @@ namespace BTM
         {
             return Id.ToString();
         }
+
+        public object Clone()
+        {
+            TramTextAdapter tram = new TramTextAdapter(Id, CarsNumber, Line);
+            tram.Driver = Driver;
+            return tram;
+        }
+
+        public void CopyFrom(ITram src)
+        {
+            this.CopyFrom((IVehicle)src);
+            CarsNumber = src.CarsNumber;
+            Line = src.Line;
+        }
+
+        public void CopyFrom(IVehicle src)
+        {
+            Id = src.Id;
+            Driver = src.Driver;
+        }
     }
 
     class TramHashMapAdapter : ITram
@@ -156,6 +191,26 @@ namespace BTM
         public string ToShortString()
         {
             return Id.ToString();
+        }
+
+        public object Clone()
+        {
+            TramHashMapAdapter tram = new TramHashMapAdapter(Id, CarsNumber, Line);
+            tram.Driver = Driver;
+            return tram;
+        }
+        
+        public void CopyFrom(ITram src)
+        {
+            this.CopyFrom((IVehicle)src);
+            CarsNumber = src.CarsNumber;
+            Line = src.Line;
+        }
+
+        public void CopyFrom(IVehicle src)
+        {
+            Id = src.Id;
+            Driver = src.Driver;
         }
     }
     interface ITramBuilder : IBTMBuilder<ITram>

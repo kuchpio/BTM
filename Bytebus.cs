@@ -11,6 +11,7 @@ namespace BTM
         string EngineClass { get; set; }
         IIterator<ILine> Lines { get; }
         void AddLine(ILine line);
+        void CopyFrom(IBytebus src);
     }
 
     class BytebusBase : VehicleBase, IBytebus
@@ -37,6 +38,22 @@ namespace BTM
         {
             string driver = Driver == null ? "TBA" : $"{Driver.Name} {Driver.Surname}";
             return $"Id: {Id}, Lines: [{CollectionUtils.ToString(Lines)}], Engine: {EngineClass}, Driver: {driver}";
+        }
+
+        public override object Clone()
+        {
+            BytebusBase bytebus = new BytebusBase(Id, EngineClass);
+            bytebus.lines.Add(Lines);
+            bytebus.Driver = Driver;
+            return bytebus;
+        }
+
+        public void CopyFrom(IBytebus src)
+        {
+            base.CopyFrom(src);
+            EngineClass = src.EngineClass;
+            lines.Clear();
+            lines.Add(src.Lines);
         }
     }
 
@@ -114,6 +131,28 @@ namespace BTM
         {
             return Id.ToString();
         }
+
+        public object Clone()
+        {
+            BytebusTextAdapter bytebus = new BytebusTextAdapter(Id, EngineClass);
+            bytebus.lines.Add(Lines);
+            bytebus.Driver = Driver;
+            return bytebus;
+        }
+
+        public void CopyFrom(IBytebus src)
+        {
+            CopyFrom((IVehicle)src);
+            EngineClass = src.EngineClass;
+            lines.Clear();
+            lines.Add(src.Lines);
+        }
+
+        public void CopyFrom(IVehicle src)
+        {
+            Id = src.Id;
+            Driver = src.Driver;
+        }
     }
 
     class BytebusHashMapAdapter : IBytebus
@@ -167,6 +206,28 @@ namespace BTM
         public string ToShortString()
         {
             return Id.ToString();
+        }
+
+        public object Clone()
+        {
+            BytebusHashMapAdapter bytebus = new BytebusHashMapAdapter(Id, EngineClass);
+            bytebus.lines.Add(Lines);
+            bytebus.Driver = Driver;
+            return bytebus;
+        }
+
+        public void CopyFrom(IBytebus src)
+        {
+            CopyFrom((IVehicle)src);
+            EngineClass = src.EngineClass;
+            lines.Clear();
+            lines.Add(src.Lines);
+        }
+
+        public void CopyFrom(IVehicle src)
+        {
+            Id = src.Id;
+            Driver = src.Driver;
         }
     }
 

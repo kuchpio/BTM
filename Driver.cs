@@ -12,6 +12,7 @@ namespace BTM
         int Seniority { get; set; }
         IIterator<IVehicle> Vehicles { get; }
         void AddVehicle(IVehicle vehicle);
+        void CopyFrom(IDriver src);
     }
 
     class DriverBase : IDriver
@@ -48,6 +49,22 @@ namespace BTM
         public override string ToString()
         {
             return $"Fullname: {Name} {Surname}, Seniority: {Seniority}, Vehicles: [{CollectionUtils.ToString(Vehicles)}]";
+        }
+
+        public object Clone()
+        {
+            DriverBase driver = new DriverBase(Name, Surname, Seniority);
+            driver.vehicles.Add(Vehicles);
+            return driver;
+        }
+
+        public void CopyFrom(IDriver src)
+        {
+            Name = src.Name;
+            Surname = src.Surname;
+            Seniority = src.Seniority;
+            vehicles.Clear();
+            vehicles.Add(src.Vehicles);
         }
     }
 
@@ -142,6 +159,22 @@ namespace BTM
         {
             return $"Fullname: {Name} {Surname}, Seniority: {Seniority}, Vehicles: [{CollectionUtils.ToString(Vehicles)}]";
         }
+
+        public object Clone()
+        {
+            DriverTextAdapter driver = new DriverTextAdapter(Name, Surname, Seniority);
+            driver.vehicles.Add(Vehicles);
+            return driver;
+        }
+
+        public void CopyFrom(IDriver src)
+        {
+            Name = src.Name;
+            Surname = src.Surname;
+            Seniority = src.Seniority;
+            vehicles.Clear();
+            vehicles.Add(src.Vehicles);
+        }
     }
 
     class DriverHashMapAdapter : IDriver
@@ -198,6 +231,22 @@ namespace BTM
         public override string ToString()
         {
             return $"Fullname: {Name} {Surname}, Seniority: {Seniority}, Vehicles: [{CollectionUtils.ToString(Vehicles)}]";
+        }
+
+        public object Clone()
+        {
+            DriverHashMapAdapter driver = new DriverHashMapAdapter(Name, Surname, Seniority);
+            driver.vehicles.Add(Vehicles);
+            return driver;
+        }
+
+        public void CopyFrom(IDriver src)
+        {
+            Name = src.Name;
+            Surname = src.Surname;
+            Seniority = src.Seniority;
+            vehicles.Clear();
+            vehicles.Add(src.Vehicles);
         }
     }
 
@@ -288,7 +337,7 @@ namespace BTM
 
         public void AddSurname(string surname)
         {
-            builder.AddName(surname);
+            builder.AddSurname(surname);
             logs.Add($"surname=\"{surname}\"");
         }
 

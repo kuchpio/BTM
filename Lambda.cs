@@ -209,4 +209,9 @@ namespace BTM
             Console.WriteLine(item);
         }
     }
+
+    interface IBinaryAction<BTMBase> where BTMBase : IBTMBase
+    {
+        void Eval(BTMBase item1, BTMBase item2);
+    }
 }

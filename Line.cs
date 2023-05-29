@@ -14,6 +14,7 @@ namespace BTM
         IIterator<IVehicle> Vehicles { get; }
         void AddStop(IStop stop);
         void AddVehicle(IVehicle vehicle);
+        void CopyFrom(ILine src);
     }
 
     class LineBase : ILine
@@ -88,6 +89,24 @@ namespace BTM
         public string ToShortString()
         {
             return NumberDec.ToString();
+        }
+
+        public object Clone()
+        {
+            LineBase line = new LineBase(NumberDec, CommonName);
+            line.stops.Add(Stops);
+            line.vehicles.Add(Vehicles);
+            return line;
+        }
+
+        public void CopyFrom(ILine src)
+        {
+            NumberDec = src.NumberDec;
+            CommonName = src.CommonName;
+            stops.Clear();
+            stops.Add(src.Stops);
+            vehicles.Clear();
+            vehicles.Add(src.Vehicles);
         }
     }
 
@@ -200,6 +219,24 @@ namespace BTM
         {
             return NumberDec.ToString();
         }
+
+        public object Clone()
+        {
+            LineTextAdapter line = new LineTextAdapter(NumberDec, CommonName);
+            line.stops.Add(Stops);
+            line.vehicles.Add(Vehicles);
+            return line;
+        }
+
+        public void CopyFrom(ILine src)
+        {
+            NumberDec = src.NumberDec;
+            CommonName = src.CommonName;
+            stops.Clear();
+            stops.Add(src.Stops);
+            vehicles.Clear();
+            vehicles.Add(src.Vehicles);
+        }
     }
 
     class LineHashMapAdapter : ILine
@@ -268,6 +305,24 @@ namespace BTM
         public string ToShortString()
         {
             return NumberDec.ToString();
+        }
+
+        public object Clone()
+        {
+            LineHashMapAdapter line = new LineHashMapAdapter(NumberDec, CommonName);
+            line.stops.Add(Stops);
+            line.vehicles.Add(Vehicles);
+            return line;
+        }
+
+        public void CopyFrom(ILine src)
+        {
+            NumberDec = src.NumberDec;
+            CommonName = src.CommonName;
+            stops.Clear();
+            stops.Add(src.Stops);
+            vehicles.Clear();
+            vehicles.Add(src.Vehicles);
         }
     }
 

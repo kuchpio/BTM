@@ -6,7 +6,7 @@ namespace BTM {
 
     interface ICommand
     {
-        ICommandExecutor Execute(string input);
+        IExecutor Execute(string input);
     }
 
     abstract class CommandBase : ICommand
@@ -25,7 +25,7 @@ namespace BTM {
 
         public abstract string Process(string input);
 
-        public virtual ICommandExecutor Execute(string input)
+        public virtual IExecutor Execute(string input)
         {
             input = Process(input);
 
@@ -967,23 +967,25 @@ namespace BTM {
         }
     }
 
-    class NamedCollection<BTMBase> where BTMBase : IBTMBase
+    class FilteredCollectionPrinter<BTMBase> : CommandBase where BTMBase : IBTMBase
     {
-        private string name;
         private IBTMCollection<BTMBase> collection;
+        private All<BTMBase> filter;
+        private string commandString;
 
-        public NamedCollection(IBTMCollection<BTMBase> collection, string name)
+        public FilteredCollectionPrinter(IBTMCollection<BTMBase> collection, All<BTMBase> filter, string commandString)
         {
             this.collection = collection;
-            this.name = name;
+            this.filter = filter;
+            this.commandString = commandString;
         }
 
-        public string Name => name;
-        public IBTMCollection<BTMBase> Collection => collection;
+        public override bool Check(string input) => input == "";
 
-        public override string ToString()
+        public override string Process(string input)
         {
-            return Name;
+            CollectionUtils.ForEach(collection.First(), new ActionIf<BTMBase>(new Print<BTMBase>(), filter));
+            return input;
         }
     }
 }

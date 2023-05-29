@@ -2,178 +2,216 @@ using System.Collections.Generic;
 
 namespace BTM
 {
-    interface ICommandExecutor
+    interface IExecutor
     {
-        void Execute();
+        void Do();
+        void Undo();
     }
 
-    abstract class ExecutorReturner : CommandBase
+    abstract class ExecutorFactory : CommandBase
     {
         public override bool Check(string input) => input == "";
 
         public override string Process(string input) => input;
     }
 
-    class FindExecutorReturner<BTMBase> : ExecutorReturner where BTMBase : IBTMBase
+    class FindExecutorFactory<BTMBase> : ExecutorFactory where BTMBase : IBTMBase
     {
-        private NamedCollection<BTMBase> collection;
+        private IBTMCollection<BTMBase> collection;
         private All<BTMBase> filter;
+        private string collectionName;
 
-        public FindExecutorReturner(NamedCollection<BTMBase> collection, All<BTMBase> filter = null)
+        public FindExecutorFactory(IBTMCollection<BTMBase> collection, All<BTMBase> filter, string collectionName)
         {
             this.collection = collection;
             this.filter = filter;
+            this.collectionName = collectionName;
         }
 
-        public override ICommandExecutor Execute(string input)
+        public override IExecutor Execute(string input)
         {
-            return new FindExecutor<BTMBase>(collection, filter == null ? null : filter.Clone());
+            return new FindExecutor<BTMBase>(
+                collection, 
+                filter.Clone(), 
+                filter.Count == 0 ? $"list {collectionName}" : $"find {collectionName} {filter}"
+            );
         }
     }
 
-    class FindExecutor<BTMBase> : ICommandExecutor where BTMBase : IBTMBase
+    class FindExecutor<BTMBase> : IExecutor where BTMBase : IBTMBase
     {
-        private NamedCollection<BTMBase> collection;
+        private IBTMCollection<BTMBase> collection;
         private All<BTMBase> filter;
+        private string commandString;
 
-        public FindExecutor(NamedCollection<BTMBase> collection, All<BTMBase> filter = null)
+        public FindExecutor(IBTMCollection<BTMBase> collection, All<BTMBase> filter, string commandString)
         {
             this.collection = collection;
-            this.filter = filter ?? new All<BTMBase>(new List<IPredicate<BTMBase>>());
+            this.filter = filter;
+            this.commandString = commandString;
         }
         
-        public void Execute()
+        public void Do()
         {
-            CollectionUtils.ForEach(collection.Collection.First(), new ActionIf<BTMBase>(new Print<BTMBase>(), filter));
+            CollectionUtils.ForEach(collection.First(), new ActionIf<BTMBase>(new Print<BTMBase>(), filter));
         }
 
-        public override string ToString()
+        public void Undo()
         {
-            return filter.Count == 0 ? $"list {collection}" : $"find {collection} {filter}";
+            // TODO: Console.SetCursorPosition, etc...
         }
+
+        public override string ToString() => commandString;
     }
 
-    class AddExecutorReturner<BTMBase> : ExecutorReturner where BTMBase : IBTMBase
+    class AddExecutorFactory<BTMBase> : ExecutorFactory where BTMBase : IBTMBase
     {
         private IBTMCollection<BTMBase> collection;
         private IBTMBuilder<BTMBase> builder;
 
-        public AddExecutorReturner(IBTMCollection<BTMBase> collection, IBTMBuilder<BTMBase> builder)
+        public AddExecutorFactory(IBTMCollection<BTMBase> collection, IBTMBuilder<BTMBase> builder)
         {
             this.collection = collection;
             this.builder = builder;
         }
 
-        public override ICommandExecutor Execute(string input)
+        public override IExecutor Execute(string input)
         {
-            string buildLogs = builder.ToString();
-            return new AddExecutor<BTMBase>(collection, builder.Result(), buildLogs);
+            string commandString = builder.ToString();
+            return new AddExecutor<BTMBase>(collection, builder.Result(), commandString);
         }
     }
 
-    class AddExecutor<BTMBase> : ICommandExecutor where BTMBase : IBTMBase
+    class AddExecutor<BTMBase> : IExecutor where BTMBase : IBTMBase
     {
         private IBTMCollection<BTMBase> collection;
-        private BTMBase newObject;
-        private string buildLogs;
+        private BTMBase addedObject;
+        private string commandString;
 
-        public AddExecutor(IBTMCollection<BTMBase> collection, BTMBase newObject, string buildLogs)
+        public AddExecutor(IBTMCollection<BTMBase> collection, BTMBase addedObject, string commandString)
         {
             this.collection = collection;
-            this.newObject = newObject;
-            this.buildLogs = buildLogs;
+            this.addedObject = addedObject;
+            this.commandString = commandString;
         }
         
-        public void Execute()
+        public void Do()
         {
-            collection.Add(newObject);
+            collection.Add(addedObject);
         }
 
-        public override string ToString()
+        public void Undo()
         {
-            return buildLogs;
+            collection.Remove(addedObject);
         }
+
+        public override string ToString() => commandString;
     }
 
-    class EditExecutorReturner<BTMBase> : ExecutorReturner where BTMBase : class, IBTMBase
+    class EditExecutorFactory<BTMBase> : ExecutorFactory where BTMBase : class, IBTMBase
     {
-        private NamedCollection<BTMBase> collection;
+        private IBTMCollection<BTMBase> collection;
         private All<BTMBase> filter;
         private ActionSequence<BTMBase> actionSequence;
+        private string collectionName;
+        private IBinaryAction<BTMBase> copyAction;
 
-        public EditExecutorReturner(NamedCollection<BTMBase> collection, All<BTMBase> filter, ActionSequence<BTMBase> actionSequence)
+        public EditExecutorFactory(IBTMCollection<BTMBase> collection, All<BTMBase> filter, ActionSequence<BTMBase> actionSequence, string collectionName, IBinaryAction<BTMBase> copyAction)
         {
             this.collection = collection;
             this.filter = filter;
             this.actionSequence = actionSequence;
+            this.collectionName = collectionName;
+            this.copyAction = copyAction;
         }
 
-        public override ICommandExecutor Execute(string input)
+        public override IExecutor Execute(string input)
         {
-            return new EditExecutor<BTMBase>(collection, actionSequence.Clone(), filter.Clone());
+            return new EditExecutor<BTMBase>(
+                CollectionUtils.Find(collection.First(), filter), 
+                actionSequence.Clone(), 
+                $"edit {collectionName} {filter}\n{actionSequence}\ndone", 
+                copyAction
+            );
         }
     }
 
-    class EditExecutor<BTMBase> : ICommandExecutor where BTMBase : class, IBTMBase
+    class EditExecutor<BTMBase> : IExecutor where BTMBase : class, IBTMBase
     {
-        private NamedCollection<BTMBase> collection;
         private ActionSequence<BTMBase> actionSequence;
-        private All<BTMBase> filter;
+        private BTMBase editedObject, objectBackup;
+        private string commandString;
+        private IBinaryAction<BTMBase> copyAction;
 
-        public EditExecutor(NamedCollection<BTMBase> collection, ActionSequence<BTMBase> actionSequence, All<BTMBase> filter)
+        public EditExecutor(BTMBase editedObject, ActionSequence<BTMBase> actionSequence, string commandString, IBinaryAction<BTMBase> copyAction)
         {
-            this.collection = collection;
             this.actionSequence = actionSequence;
-            this.filter = filter;
+            this.editedObject = editedObject;
+            this.commandString = commandString;
+            this.copyAction = copyAction;
         }
         
-        public void Execute()
+        public void Do()
         {
-            actionSequence.Eval(CollectionUtils.Find(collection.Collection.First(), filter));
+            objectBackup = (BTMBase)editedObject.Clone();
+            actionSequence.Eval(editedObject);
         }
 
-        public override string ToString()
+        public void Undo()
         {
-            return $"edit {collection} {filter}\n{actionSequence}\ndone";
+            copyAction.Eval(objectBackup, editedObject);
         }
+
+        public override string ToString() => commandString;
     }
 
-    class DeleteExecutorReturner<BTMBase> : ExecutorReturner where BTMBase : IBTMBase
+    class DeleteExecutorFactory<BTMBase> : ExecutorFactory where BTMBase : class, IBTMBase
     {
-        private NamedCollection<BTMBase> collection;
+        private IBTMCollection<BTMBase> collection;
         private All<BTMBase> filter;
+        private string collectionName;
 
-        public DeleteExecutorReturner(NamedCollection<BTMBase> collection, All<BTMBase> filter)
+        public DeleteExecutorFactory(IBTMCollection<BTMBase> collection, All<BTMBase> filter, string collectionName)
         {
             this.collection = collection;
             this.filter = filter;
+            this.collectionName = collectionName;
         }
 
-        public override ICommandExecutor Execute(string input)
+        public override IExecutor Execute(string input)
         {
-            return new DeleteExecutor<BTMBase>(collection, filter.Clone());
+            return new DeleteExecutor<BTMBase>(
+                collection, 
+                CollectionUtils.Find<BTMBase>(collection.First(), filter), 
+                $"delete {collectionName} {filter}"
+            );
         }
     }
 
-    class DeleteExecutor<BTMBase> : ICommandExecutor where BTMBase : IBTMBase
+    class DeleteExecutor<BTMBase> : IExecutor where BTMBase : IBTMBase
     {
-        private NamedCollection<BTMBase> collection;
-        private All<BTMBase> filter;
+        private IBTMCollection<BTMBase> collection;
+        private BTMBase deletedObject;
+        private string commandString;
+        private int index;
 
-        public DeleteExecutor(NamedCollection<BTMBase> collection, All<BTMBase> filter)
+        public DeleteExecutor(IBTMCollection<BTMBase> collection, BTMBase deletedObject, string commandString)
         {
             this.collection = collection;
-            this.filter = filter;
+            this.deletedObject = deletedObject;
+            this.commandString = commandString;
         }
         
-        public void Execute()
+        public void Do()
         {
-            collection.Collection.RemoveIfFirst(filter);
+            this.index = collection.Remove(deletedObject);
         }
 
-        public override string ToString()
+        public void Undo()
         {
-            return $"delete {collection} {filter}";
+            collection.Add(this.index, deletedObject);
         }
+
+        public override string ToString() => commandString;
     }
 }

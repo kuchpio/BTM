@@ -8,7 +8,7 @@ namespace BTM
             BTMSystem.GetInstance().SetBaseExample();
 
             Terminal terminal = new Terminal();
-            terminal.Run();
+            terminal.Run(true);
         }
     }
 }

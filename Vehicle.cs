@@ -6,9 +6,10 @@ namespace BTM
     {
         int Id { get; set; }
         IDriver Driver { get; set; }
+        void CopyFrom(IVehicle src);
     }
 
-    class VehicleBase : IVehicle
+    abstract class VehicleBase : IVehicle
     {
         private int id;
         private IDriver driver;
@@ -24,6 +25,13 @@ namespace BTM
         public string ToShortString()
         {
             return id.ToString();
+        }
+
+        public abstract object Clone();
+        public void CopyFrom(IVehicle src)
+        {
+            Id = src.Id;
+            Driver = src.Driver;
         }
     }
 }

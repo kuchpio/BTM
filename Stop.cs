@@ -12,6 +12,7 @@ namespace BTM
         string Type { get; set; }
         IIterator<ILine> Lines { get; }
         void AddLine(ILine line);
+        void CopyFrom(IStop src);
     }
 
     class StopBase : IStop
@@ -47,6 +48,22 @@ namespace BTM
         public override string ToString()
         {
             return $"Id: {Id}, Name: {Name}, Type: {Type}, Lines: [{CollectionUtils.ToString(Lines)}]";
+        }
+
+        public object Clone()
+        {
+            StopBase stop = new StopBase(Id, Name, Type);
+            stop.lines.Add(Lines);
+            return stop;
+        }
+
+        public void CopyFrom(IStop src)
+        {
+            Id = src.Id;
+            Name = src.Name;
+            Type = src.Type;
+            lines.Clear();
+            lines.Add(src.Lines);
         }
     }
 
@@ -139,6 +156,22 @@ namespace BTM
         {
             return $"Id: {Id}, Name: {Name}, Type: {Type}, Lines: [{CollectionUtils.ToString(Lines)}]";
         }
+
+        public object Clone()
+        {
+            StopTextAdapter stop = new StopTextAdapter(Id, Name, Type);
+            stop.lines.Add(Lines);
+            return stop;
+        }
+
+        public void CopyFrom(IStop src)
+        {
+            Id = src.Id;
+            Name = src.Name;
+            Type = src.Type;
+            lines.Clear();
+            lines.Add(src.Lines);
+        }
     }
 
     class StopHashMapAdapter : IStop
@@ -195,6 +228,22 @@ namespace BTM
         public override string ToString()
         {
             return $"Id: {Id}, Name: {Name}, Type: {Type}, Lines: [{CollectionUtils.ToString(Lines)}]";
+        }
+
+        public object Clone()
+        {
+            StopHashMapAdapter stop = new StopHashMapAdapter(Id, Name, Type);
+            stop.lines.Add(Lines);
+            return stop;
+        }
+
+        public void CopyFrom(IStop src)
+        {
+            Id = src.Id;
+            Name = src.Name;
+            Type = src.Type;
+            lines.Clear();
+            lines.Add(src.Lines);
         }
     }
 
