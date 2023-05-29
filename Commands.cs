@@ -38,22 +38,24 @@ namespace BTM
                     history.RemoveRange(historyIndex, history.Count - historyIndex);
                 }
 
-                if (executeImmediately)
-                {
-                    foreach (IExecutor enqueued in queue)
-                    {
-                        enqueued.Do();
-                        history.Add(enqueued);
-                        historyIndex++;
-                    }
-                    queue.Clear();
-                }
+                if (executeImmediately) ExecuteQueue();
             }
         }
 
         public void Close()
         {
             work = false;
+        }
+
+        public void ExecuteQueue()
+        {
+            foreach (IExecutor enqueued in queue)
+            {
+                enqueued.Do();
+                history.Add(enqueued);
+                historyIndex++;
+            }
+            queue.Clear();
         }
 
         public List<IExecutor> History => history;
@@ -100,7 +102,7 @@ namespace BTM
     {
         public QueueCommand(Terminal terminal) : base(new List<CommandBase>() {
             new QueueDismiss(terminal.Queue), 
-            new QueueCommit(terminal.Queue), 
+            new QueueCommit(terminal), 
             new QueuePrint(terminal.Queue), 
             new ExportCommand(terminal.Queue), 
             new LoadCommand(terminal)
@@ -121,20 +123,14 @@ namespace BTM
 
         private class QueueCommit : KeywordConsumer
         {
-            private List<IExecutor> queue;
+            private Terminal terminal;
             
-            public QueueCommit(List<IExecutor> queue) : base("commit")
+            public QueueCommit(Terminal terminal) : base("commit")
             { 
-                this.queue = queue;
+                this.terminal = terminal;
             }
 
-            public override void Action()
-            {
-                foreach (IExecutor executor in queue)
-                    executor.Do();
-
-                queue.Clear();
-            }
+            public override void Action() => terminal.ExecuteQueue();
         }
 
         private class QueuePrint : KeywordConsumer
