@@ -5,7 +5,7 @@ namespace BTM
     {
         static void Main(string[] args)
         {
-            BTMSystem.GetInstance().SetBaseExample();
+            BTMSystem.GetInstance().SetTextExample();
 
             Terminal terminal = new Terminal();
             terminal.Run(true);

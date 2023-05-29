@@ -294,7 +294,7 @@ namespace BTM
                 }
                 catch
                 {
-                    Console.Error.Write($"Could not read file {input}.");
+                    Console.Error.WriteLine($"Could not read file {input}.");
                     return "";
                 }
 

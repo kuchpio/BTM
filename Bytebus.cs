@@ -88,8 +88,8 @@ namespace BTM
                 int startIndex = bytebusText.TextRepr.IndexOf('#');
                 int endIndex = bytebusText.TextRepr.IndexOf('^', startIndex + 1);
                 if (startIndex < 0 || startIndex >= endIndex) return;
-                bytebusText.TextRepr.Remove(startIndex + 1, endIndex - startIndex - 1);
-                bytebusText.TextRepr.Insert(startIndex + 1, $"<{value}>");
+                bytebusText.TextRepr = bytebusText.TextRepr.Remove(startIndex + 1, endIndex - startIndex - 1);
+                bytebusText.TextRepr = bytebusText.TextRepr.Insert(startIndex + 1, $"<{value}>");
             }
         }
         public string EngineClass 
@@ -106,8 +106,8 @@ namespace BTM
                 int startIndex = bytebusText.TextRepr.IndexOf('^');
                 int endIndex = bytebusText.TextRepr.IndexOf('*', startIndex + 1);
                 if (startIndex < 0 || startIndex >= endIndex) return;
-                bytebusText.TextRepr.Remove(startIndex + 1, endIndex - startIndex - 1);
-                bytebusText.TextRepr.Insert(startIndex + 1, $"<{value}>");
+                bytebusText.TextRepr = bytebusText.TextRepr.Remove(startIndex + 1, endIndex - startIndex - 1);
+                bytebusText.TextRepr = bytebusText.TextRepr.Insert(startIndex + 1, $"<{value}>");
             }
         }
 

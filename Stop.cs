@@ -97,8 +97,8 @@ namespace BTM
                 int startIndex = stopText.TextRepr.IndexOf('#');
                 int endIndex = stopText.TextRepr.IndexOf('(', startIndex + 1);
                 if (startIndex < 0 || startIndex >= endIndex) return;
-                stopText.TextRepr.Remove(startIndex + 1, endIndex - startIndex - 1);
-                stopText.TextRepr.Insert(startIndex + 1, $"<{value}>");
+                stopText.TextRepr = stopText.TextRepr.Remove(startIndex + 1, endIndex - startIndex - 1);
+                stopText.TextRepr = stopText.TextRepr.Insert(startIndex + 1, $"<{value}>");
             }
         }
         public string Name 
@@ -115,8 +115,8 @@ namespace BTM
                 int startIndex = stopText.TextRepr.IndexOf(')');
                 int endIndex = stopText.TextRepr.IndexOf('/', startIndex + 1);
                 if (startIndex < 0 || startIndex >= endIndex) return;
-                stopText.TextRepr.Remove(startIndex + 1, endIndex - startIndex - 1);
-                stopText.TextRepr.Insert(startIndex + 1, $"<{value}>");
+                stopText.TextRepr = stopText.TextRepr.Remove(startIndex + 1, endIndex - startIndex - 1);
+                stopText.TextRepr = stopText.TextRepr.Insert(startIndex + 1, $"<{value}>");
             }
         }
         public string Type 
@@ -132,8 +132,8 @@ namespace BTM
                 int startIndex = stopText.TextRepr.IndexOf('/');
                 int endIndex = stopText.TextRepr.Length;
                 if (startIndex < 0) return;
-                stopText.TextRepr.Remove(startIndex + 1, endIndex - startIndex - 1);
-                stopText.TextRepr.Insert(startIndex + 1, $"<{value}>");
+                stopText.TextRepr = stopText.TextRepr.Remove(startIndex + 1, endIndex - startIndex - 1);
+                stopText.TextRepr = stopText.TextRepr.Insert(startIndex + 1, $"<{value}>");
             }
         }
         public IIterator<ILine> Lines => lines.First();

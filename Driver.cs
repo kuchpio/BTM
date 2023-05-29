@@ -98,8 +98,8 @@ namespace BTM
                 int startIndex = -1;
                 int endIndex = driverText.TextRepr.IndexOf(' ');
                 if (startIndex >= endIndex) return;
-                driverText.TextRepr.Remove(startIndex + 1, endIndex - startIndex - 1);
-                driverText.TextRepr.Insert(startIndex + 1, $"<{value}>");
+                driverText.TextRepr = driverText.TextRepr.Remove(startIndex + 1, endIndex - startIndex - 1);
+                driverText.TextRepr = driverText.TextRepr.Insert(startIndex + 1, $"<{value}>");
             }
         }
         public string Surname 
@@ -116,8 +116,8 @@ namespace BTM
                 int startIndex = driverText.TextRepr.IndexOf(' ');
                 int endIndex = driverText.TextRepr.IndexOf('(', startIndex + 1);
                 if (startIndex < 0 || startIndex >= endIndex) return;
-                driverText.TextRepr.Remove(startIndex + 1, endIndex - startIndex - 1);
-                driverText.TextRepr.Insert(startIndex + 1, $"<{value}>");
+                driverText.TextRepr = driverText.TextRepr.Remove(startIndex + 1, endIndex - startIndex - 1);
+                driverText.TextRepr = driverText.TextRepr.Insert(startIndex + 1, $"<{value}>");
             }
         }
         public int Seniority 
@@ -134,8 +134,8 @@ namespace BTM
                 int startIndex = driverText.TextRepr.IndexOf('(');
                 int endIndex = driverText.TextRepr.IndexOf(')', startIndex + 1);
                 if (startIndex < 0 || startIndex >= endIndex) return;
-                driverText.TextRepr.Remove(startIndex + 1, endIndex - startIndex - 1);
-                driverText.TextRepr.Insert(startIndex + 1, $"<{value}>");
+                driverText.TextRepr = driverText.TextRepr.Remove(startIndex + 1, endIndex - startIndex - 1);
+                driverText.TextRepr = driverText.TextRepr.Insert(startIndex + 1, $"<{value}>");
             }
         }
 
@@ -145,7 +145,7 @@ namespace BTM
         {
             int index = driverText.TextRepr.LastIndexOf('@');
             if (index < 0) return;
-            driverText.TextRepr.Insert(index + 1, $"<{vehicle.Id}>");
+            driverText.TextRepr = driverText.TextRepr.Insert(index + 1, $"<{vehicle.Id}>");
             vehicles.Add(vehicle);
         }
 

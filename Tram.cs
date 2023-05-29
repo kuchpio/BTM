@@ -86,8 +86,8 @@ namespace BTM
                 int startIndex = tramText.TextRepr.IndexOf('#');
                 int endIndex = tramText.TextRepr.IndexOf('(', startIndex + 1);
                 if (startIndex < 0 || startIndex >= endIndex) return;
-                tramText.TextRepr.Remove(startIndex + 1, endIndex - startIndex - 1);
-                tramText.TextRepr.Insert(startIndex + 1, $"<{value}>");
+                tramText.TextRepr = tramText.TextRepr.Remove(startIndex + 1, endIndex - startIndex - 1);
+                tramText.TextRepr = tramText.TextRepr.Insert(startIndex + 1, $"<{value}>");
             }
         }
         public int CarsNumber 
@@ -104,8 +104,8 @@ namespace BTM
                 int startIndex = tramText.TextRepr.IndexOf('(');
                 int endIndex = tramText.TextRepr.IndexOf(')', startIndex + 1);
                 if (startIndex < 0 || startIndex >= endIndex) return;
-                tramText.TextRepr.Remove(startIndex + 1, endIndex - startIndex - 1);
-                tramText.TextRepr.Insert(startIndex + 1, $"<{value}>");
+                tramText.TextRepr = tramText.TextRepr.Remove(startIndex + 1, endIndex - startIndex - 1);
+                tramText.TextRepr = tramText.TextRepr.Insert(startIndex + 1, $"<{value}>");
             }
         }
         public ILine Line { get => line; set => line = value; }
