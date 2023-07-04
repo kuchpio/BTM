@@ -5,10 +5,10 @@ namespace BTM
     {
         static void Main(string[] args)
         {
-            BTMSystem.GetInstance().SetTextExample();
+            BTM.GetInstance().SetTextExample();
 
             Terminal terminal = new Terminal();
-            terminal.Run(true);
+            terminal.Run(false);
         }
     }
 }
