@@ -8,6 +8,12 @@ namespace BTM
         IExecutor Execute(string input);
     }
 
+    interface IHelpable : ICommand
+    {
+        string HelpKeyword { get; }
+        string Help { get; }
+    }
+
     abstract class CommandBase : ICommand
     {
         protected List<CommandBase> subcommands;

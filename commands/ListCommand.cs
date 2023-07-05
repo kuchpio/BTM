@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace BTM
 {
-    class ListCommand : KeywordConsumer
+    class ListCommand : KeywordConsumer, IHelpable
     {
         public ListCommand() : base(new List<CommandBase>()
         {
@@ -14,6 +14,16 @@ namespace BTM
             new DisplayCollection<IDriver>(new DriverQuery())
         }, "list")
         { }
+
+        public string HelpKeyword => "list";
+
+        public string Help =>
+@"USAGE: list <collection>
+
+collection: line|stop|bytebus|tram|vehicle|driver
+
+Shows all entities listed in specified collection.
+";
 
         private class DisplayCollection<BTMBase> : CollectionSelector<BTMBase>
             where BTMBase : IBTMBase

@@ -3,7 +3,7 @@ using static BTM.CollectionUtils;
 
 namespace BTM
 {
-    class DeleteCommand : KeywordConsumer
+    class DeleteCommand : KeywordConsumer, IHelpable
     {
         public DeleteCommand() :
             base(new List<CommandBase>() {
@@ -15,6 +15,18 @@ namespace BTM
                 new DeleteFromCollection<IDriver>(new DriverQuery()),
             }, "delete")
         { }
+
+        public string HelpKeyword => "delete";
+
+        public string Help => 
+@$"USAGE: delete <collection> [(<attribute>(=|>|<)<value>)...]
+
+collection: line|stop|bytebus|tram|driver
+
+Removes entity from specified collection. The conditions must
+specify exactly one entity for this command to work.
+When necessary <value> can be surrounded by double quotes ("").
+";
 
         private class DeleteFromCollection<BTMBase> : CollectionSelector<BTMBase>
             where BTMBase : class, IBTMBase

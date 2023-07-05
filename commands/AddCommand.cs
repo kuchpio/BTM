@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace BTM
 {
-    class AddCommand : KeywordConsumer
+    class AddCommand : KeywordConsumer, IHelpable
     {
         public AddCommand() : base(new List<CommandBase>()
         {
@@ -13,6 +13,29 @@ namespace BTM
             new AddToCollection<IDriver, IDriverBuilder>(new DriverQuery(), new DriverBuilderLogger(new DriverBaseBuilder()), new DriverBuilderLogger(new DriverTextBuilder())),
         }, "add")
         { }
+
+        public string HelpKeyword => "add";
+
+        public string Help =>
+@"USAGE: add <collection> (base|secondary)
+       <attribute>=<value>
+          :
+       <attribute>=<value>
+       (done|exit)
+
+collection: line|stop|bytebus|tram|driver
+
+Creates and adds new entity to specified collection. Second
+argument specifies representation of the entity:
+    base        - Objects with fields
+    secondary   - Objects encoded as strings
+
+After being called, command becomes interactive and in each line
+accepts an input in format `<attribute>=<value>` that allows
+setting values of attributes of newly created entity. To finish
+and save the entity to it's corresponding collection pass `done`, 
+to discard the entity pass `exit`. 
+";
 
         private class AddToCollection<BTMBase, BTMBaseBuilder> : CollectionSelector<BTMBase>
             where BTMBase : IBTMBase

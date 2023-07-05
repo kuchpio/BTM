@@ -5,10 +5,21 @@ using System.Xml;
 
 namespace BTM
 {
-    class LoadCommand : KeywordConsumer
+    class LoadCommand : KeywordConsumer, IHelpable
     {
         public LoadCommand(Terminal terminal) : base(new FileLoader(terminal), "load")
         { }
+
+        public string HelpKeyword => "load";
+
+        public string Help =>
+@"USAGE: load <filename>
+
+Reads commands from <filename>, which can be formatted in any way
+supported by *export* command. Then these commands get called, 
+which can result in them being either executed or enqueued, 
+depending on BTM terminal mode. 
+";
 
         private class FileLoader : CommandBase
         {

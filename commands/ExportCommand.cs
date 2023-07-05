@@ -5,13 +5,25 @@ using System.Linq;
 
 namespace BTM
 {
-    class ExportCommand : KeywordConsumer
+    class ExportCommand : KeywordConsumer, IHelpable
     {
         public ExportCommand(List<IExecutor> executors) : base(new List<CommandBase>() {
             new TextExporter(executors),
             new XMLExporter(executors),
         }, "export")
         { }
+
+        public string HelpKeyword => "export";
+
+        public string Help =>
+@"USAGE: export <filename> [(xml|plaintext)]
+
+Writes whole command history (or command queue in case of 
+*queue export* call) to <filename>. Second (optional) argument
+specifies format of the output file. Supported formats are:
+    xml         - (default) XML format
+    plaintext   - format accepted by BTM Terminal from stdin
+";
 
         private class TextExporter : CommandBase
         {

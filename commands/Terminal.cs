@@ -9,6 +9,7 @@ namespace BTM
         private CommandBase commandRunner;
         private List<IExecutor> history, queue;
         private int historyIndex;
+        private List<CommandBase> commands;
 
         public Terminal()
         {
@@ -16,7 +17,24 @@ namespace BTM
             history = new List<IExecutor>();
             queue = new List<IExecutor>();
             historyIndex = 0;
-            commandRunner = new CommandRunner(this);
+            commands = new List<CommandBase>() 
+            {
+                new ListCommand(),
+                new FindCommand(),
+                new AddCommand(),
+                new EditCommand(),
+                new DeleteCommand(),
+                new QueueCommand(this),
+                new HistoryCommand(this.History),
+                new UndoCommand(this),
+                new RedoCommand(this),
+                new ExportCommand(this.History),
+                new LoadCommand(this),
+                new DescCommand(), 
+                new ExitCommand(this)
+            };
+            commands.Add(new HelpCommand(commands));
+            commandRunner = new CommandRunner(commands);
         }
 
         public void Run(bool executeImmediately)
@@ -25,7 +43,7 @@ namespace BTM
             while (work)
             {
                 Console.ForegroundColor = executeImmediately ? ConsoleColor.Green : ConsoleColor.Yellow;
-                Console.Write("BTM > ");
+                Console.Write($"BTM ({(executeImmediately ? 'i' : 'q')}) > ");
                 Console.ResetColor();
                 string input = Console.ReadLine();
 
@@ -74,21 +92,8 @@ namespace BTM
 
         private class CommandRunner : CommandBase
         {
-            public CommandRunner(Terminal terminal) :
-                base(new List<CommandBase>() {
-                    new ListCommand(),
-                    new FindCommand(),
-                    new AddCommand(),
-                    new EditCommand(),
-                    new DeleteCommand(),
-                    new QueueCommand(terminal),
-                    new HistoryCommand(terminal.History),
-                    new UndoCommand(terminal),
-                    new RedoCommand(terminal),
-                    new ExportCommand(terminal.History),
-                    new LoadCommand(terminal),
-                    new ExitCommand(terminal)
-                })
+            public CommandRunner(List<CommandBase> subcommands) :
+                base(subcommands)
             { }
 
             public override bool Check(string input) => input != null;
@@ -96,7 +101,68 @@ namespace BTM
             public override string Process(string input) => input;
         }
 
-        private class ExitCommand : KeywordConsumer
+        private class HelpCommand : KeywordConsumer, IHelpable
+        {
+            public HelpCommand(List<CommandBase> commands) : 
+                base("help")
+            {
+                foreach (ICommand command in commands)
+                    if (command is IHelpable) 
+                        subcommands.Add(new HelpDisplayer(command as IHelpable));
+
+                subcommands.Add(new HelpDisplayer(this));
+            }
+
+            public string HelpKeyword => "";
+
+            public string Help => 
+@"USAGE: help <command>
+
+command: 
+    desc        - show available attributes for entity
+    list        - show all existing entities
+    find        - filter existing entities
+    add         - (q) add new entity
+    delete      - (q) delete existing entity
+    edit        - (q) edit existing entity
+
+    queue       - manage queue
+    history     - show history
+    export      - export command history to file
+    load        - load commands from file
+    undo        - undo
+    redo        - redo
+
+    exit        - closes terminal
+
+Terminal can execute in one of two modes: *immediate* or *queue*.
+
+In queue mode commands marked with (q) are stored in queue after
+being called. They are executed and stored in history only after 
+calling *queue commit*. 
+
+In immediate mode enqueued commands are executed immediately and
+removed from the queue. 
+";
+
+            private class HelpDisplayer : KeywordConsumer
+            {
+                private IHelpable command;
+
+                public HelpDisplayer(IHelpable command) : 
+                    base(command.HelpKeyword)
+                {
+                    this.command = command;
+                }
+
+                public override void Action()
+                {
+                    Console.WriteLine(command.Help);
+                }
+            }
+        }
+
+        private class ExitCommand : KeywordConsumer, IHelpable
         {
             private Terminal terminal;
 
@@ -104,6 +170,14 @@ namespace BTM
             {
                 this.terminal = terminal;
             }
+
+            public string HelpKeyword => "exit";
+
+            public string Help => 
+@"USAGE: exit
+
+Closes BTM terminal.
+";
 
             public override void Action()
             {

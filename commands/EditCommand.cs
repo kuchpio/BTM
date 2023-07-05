@@ -3,7 +3,7 @@ using static BTM.CollectionUtils;
 
 namespace BTM
 {
-    class EditCommand : KeywordConsumer
+    class EditCommand : KeywordConsumer, IHelpable
     {
         public EditCommand() : base(new List<CommandBase>()
         {
@@ -15,6 +15,28 @@ namespace BTM
             new EditFromCollection<IDriver>(new DriverQuery()),
         }, "edit")
         { }
+
+        public string HelpKeyword => "edit";
+
+        public string Help =>
+@"USAGE: edit <collection> [(<attribute>(=|>|<)<value>)...]
+       <attribute>=<value>
+          :
+       <attribute>=<value>
+       (done|exit)
+
+collection: line|stop|bytebus|tram|driver
+
+Edits an entity from specified collection, that satisfies 
+conditions. The conditions must specify exactly one entity
+to enter the interactive mode. When necessary, <value> can be 
+surrounded by double quotes ("").
+
+After being called, command becomes interactive and in each line
+accepts an input in format `<attribute>=<value>` that allows
+setting values of attributes of currently edited entity. To finish
+and save the changes pass `done`, to discard the changes pass `exit`. 
+";
 
         private class EditFromCollection<BTMBase> : CollectionSelector<BTMBase>
             where BTMBase : class, IBTMBase, IRestoreable<BTMBase>

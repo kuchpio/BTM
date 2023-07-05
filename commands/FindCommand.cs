@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace BTM
 {
-    class FindCommand : KeywordConsumer
+    class FindCommand : KeywordConsumer, IHelpable
     {
         public FindCommand() : base(new List<CommandBase>()
         {
@@ -14,6 +14,17 @@ namespace BTM
             new DisplayFilteredCollection<IDriver>(new DriverQuery())
         }, "find")
         { }
+
+        public string HelpKeyword => "find";
+
+        public string Help =>
+@$"USAGE: find <collection> [(<attribute>(=|>|<)<value>)...]
+
+collection: line|stop|bytebus|tram|vehicle|driver
+
+Shows filtered entities listed in specified collection.
+When necessary, <value> can be surrounded by double quotes ("").
+";
 
         private class DisplayFilteredCollection<BTMBase> : CollectionSelector<BTMBase>
             where BTMBase : IBTMBase
