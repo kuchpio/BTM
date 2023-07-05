@@ -135,7 +135,7 @@ command:
 
     exit        - closes terminal
 
-Terminal can execute in one of two modes: *immediate* or *queue*.
+Terminal can run in one of two modes: *immediate* or *queue*.
 
 In queue mode commands marked with (q) are stored in queue after
 being called. They are executed and stored in history only after 

@@ -46,7 +46,7 @@ namespace BTM
                 }
             }
             
-            Console.Error.WriteLine($"Unknown command syntax near: \n`{input}`");
+            Console.Error.WriteLine($"Unknown command syntax near: \n`{input}`\nFor help see `help`");
             return null;
         }
     }
